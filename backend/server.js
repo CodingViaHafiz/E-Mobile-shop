@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import corsMiddleware from "./middleware/corsConfig.js";
 import errorHandler from "./middleware/errorHandler.js";
 import connectDB from "./config/db.js";
+import authRoutes from "./routes/auth.js";
 
 dotenv.config();
 
@@ -17,7 +18,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(corsMiddleware);
 
-// Basic Routes
+// Routes
+app.use("/api/auth", authRoutes);
+
 app.get("/api/health", (req, res) => {
   res.status(200).json({ message: "Server is running" });
 });
