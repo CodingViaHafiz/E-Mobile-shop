@@ -13,12 +13,13 @@ import { Settings } from './pages/Settings';
 import { Account } from './pages/Account';
 import { Cart } from './pages/Cart';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { InventoryPage } from './pages/AdminInventory';
 import { COLORS } from './constants/designTokens';
 
 function AppRoutes() {
   const { isAuthenticated, loading, user } = useAuth();
   const { pathname } = useLocation();
-  const hideNavbar = pathname === "/login" || pathname === "/register";
+  const hideNavbar = pathname === "/login" || pathname === "/register" || pathname.startsWith("/admin");
   const authenticatedHome = user?.role === "admin" ? "/admin" : "/";
 
   if (loading) {
@@ -83,6 +84,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
               <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/inventory"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <InventoryPage />
             </ProtectedRoute>
           }
         />
