@@ -1,81 +1,117 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  FiSearch,
-  FiPlus,
-  FiEdit2,
-  FiTrash2,
-  FiRefreshCw,
+  FiAlertCircle,
   FiFilter,
   FiPackage,
-  FiAlertCircle,
+  FiPlus,
+  FiRefreshCw,
+  FiSearch,
 } from "react-icons/fi";
 import { AdminLayout } from "../components/AdminLayout";
+import { AdminPageHeader } from "../components/AdminPageHeader";
+import { AdminStatCard } from "../components/AdminStatCard";
 import axiosInstance from "../services/api";
+
+const sectionMotion = {
+  initial: { opacity: 0, y: 18 },
+  animate: { opacity: 1, y: 0 },
+};
 
 export const InventoryPage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStock, setFilterStock] = useState("all");
+
+  const fetchInventory = async (silent = false) => {
+    try {
+      if (silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      setError("");
+      const { data } = await axiosInstance.get("/admin/inventory");
+      setProducts(data?.products || []);
+    } catch (requestError) {
+      const message = requestError?.response?.data?.message;
+      const status = requestError?.response?.status;
+
+      setError(
+        status === 404
+          ? "The inventory API is not connected yet, so this page is showing its designed empty state."
+          : message || "Failed to load inventory"
+      );
+      setProducts([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     fetchInventory();
   }, []);
 
-  const fetchInventory = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const { data } = await axiosInstance.get("/admin/inventory");
-      setProducts(data?.products || []);
-    } catch (err) {
-      setError(err?.response?.data?.message || "Failed to load inventory");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const filteredProducts = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.sku?.toLowerCase().includes(searchTerm.toLowerCase());
+    return products.filter((product) => {
+      const matchesSearch =
+        !term ||
+        product.name?.toLowerCase().includes(term) ||
+        product.category?.toLowerCase().includes(term) ||
+        product.sku?.toLowerCase().includes(term);
 
-    if (filterStock === "low") return matchesSearch && product.stock <= 10;
-    if (filterStock === "outofstock") return matchesSearch && product.stock === 0;
-    return matchesSearch;
-  });
+      if (filterStock === "low") {
+        return matchesSearch && product.stock > 0 && product.stock <= 10;
+      }
+
+      if (filterStock === "outofstock") {
+        return matchesSearch && product.stock === 0;
+      }
+
+      return matchesSearch;
+    });
+  }, [filterStock, products, searchTerm]);
 
   const stats = [
     {
-      label: "Total Products",
+      label: "Products",
       value: products.length,
       icon: FiPackage,
-      color: "#3b82f6",
+      accent: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+      hint: "Items currently returned by the API",
     },
     {
-      label: "Low Stock",
-      value: products.filter((p) => p.stock <= 10).length,
+      label: "Low stock",
+      value: products.filter((product) => product.stock > 0 && product.stock <= 10).length,
       icon: FiAlertCircle,
-      color: "#f59e0b",
+      accent: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+      hint: "Products that need replenishment soon",
     },
     {
-      label: "Out of Stock",
-      value: products.filter((p) => p.stock === 0).length,
+      label: "Out of stock",
+      value: products.filter((product) => product.stock === 0).length,
       icon: FiAlertCircle,
-      color: "#ef4444",
+      accent: "linear-gradient(135deg, #fb7185 0%, #dc2626 100%)",
+      hint: "Products that cannot currently be sold",
     },
   ];
 
   if (loading) {
     return (
       <AdminLayout>
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="admin-panel flex min-h-[70vh] items-center justify-center p-8">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600 mx-auto mb-4"></div>
-            <p className="text-slate-600 font-medium">Loading inventory...</p>
+            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600" />
+            <p className="mt-4 text-sm font-semibold text-slate-600">
+              Loading inventory...
+            </p>
           </div>
         </div>
       </AdminLayout>
@@ -84,244 +120,156 @@ export const InventoryPage = () => {
 
   return (
     <AdminLayout>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 lg:p-8">
-        <div className="max-w-7xl mx-auto space-y-8">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
-          >
-            <div>
-              <h1 className="text-4xl md:text-5xl font-black text-slate-900">
-                Inventory Management
-              </h1>
-              <p className="text-slate-600 mt-2 font-medium">
-                Manage your products and stock levels
-              </p>
-            </div>
-
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={fetchInventory}
-              className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg transition-all"
-            >
-              <FiRefreshCw size={20} />
-              Refresh
-            </motion.button>
-          </motion.div>
-
-          {/* Stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ staggerChildren: 0.1 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
-          >
-            {stats.map((stat, idx) => {
-              const Icon = stat.icon;
-              return (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                  className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200 hover:shadow-xl transition-shadow"
-                >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center text-white"
-                      style={{ backgroundColor: stat.color }}
-                    >
-                      <Icon size={24} />
-                    </div>
-                    <div>
-                      <p className="text-slate-600 text-sm font-medium">{stat.label}</p>
-                      <p className="text-3xl font-black text-slate-900 mt-1">
-                        {stat.value}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </motion.div>
-
-          {error && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 font-semibold"
-            >
-              {error}
-            </motion.div>
-          )}
-
-          {/* Filters and Search */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200"
-          >
-            <div className="flex flex-col lg:flex-row gap-4">
-              {/* Search */}
-              <div className="flex-1 relative">
-                <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                <input
-                  type="text"
-                  placeholder="Search by product name, category, or SKU..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 transition-all font-medium"
-                />
-              </div>
-
-              {/* Filter */}
-              <div className="flex gap-2">
-                <FiFilter className="hidden sm:block mt-3 text-slate-400" size={20} />
-                <select
-                  value={filterStock}
-                  onChange={(e) => setFilterStock(e.target.value)}
-                  className="px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-blue-500 focus:outline-none font-semibold text-slate-700 transition-all cursor-pointer"
-                >
-                  <option value="all">All Stock</option>
-                  <option value="low">Low Stock</option>
-                  <option value="outofstock">Out of Stock</option>
-                </select>
-              </div>
-
-              {/* Add Product Button */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg transition-all whitespace-nowrap"
+      <div className="mx-auto max-w-7xl space-y-8">
+        <AdminPageHeader
+          eyebrow="Inventory"
+          title="Keep the catalog easy to scan"
+          description="The inventory page now uses the same admin shell, clearer controls, and safer empty states so it still feels polished even when the inventory backend is incomplete."
+          meta={[
+            `${products.length} products loaded`,
+            `${products.filter((product) => product.stock === 0).length} out of stock`,
+            "Prepared for CRUD workflows",
+          ]}
+          actions={
+            <>
+              <button
+                disabled
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-400 opacity-80"
               >
-                <FiPlus size={20} />
-                Add Product
-              </motion.button>
-            </div>
-          </motion.div>
+                <FiPlus />
+                Add product
+              </button>
+              <button
+                onClick={() => fetchInventory(true)}
+                className="admin-button-primary"
+              >
+                <FiRefreshCw className={refreshing ? "animate-spin" : ""} />
+                Refresh
+              </button>
+            </>
+          }
+        />
 
-          {/* Products Table */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden"
-          >
-            {/* Table Header */}
+        {error && (
+          <div className="admin-panel border-amber-200/80 bg-amber-50/90 p-4 text-sm font-semibold text-amber-800">
+            {error}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+          {stats.map((stat) => (
+            <motion.div key={stat.label} {...sectionMotion}>
+              <AdminStatCard {...stat} />
+            </motion.div>
+          ))}
+        </div>
+
+        <motion.section {...sectionMotion} className="admin-section space-y-6">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+            <div className="relative flex-1">
+              <FiSearch
+                className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                size={18}
+              />
+              <input
+                type="text"
+                placeholder="Search by product, category, or SKU"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                className="admin-input pl-11"
+              />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500">
+                <FiFilter size={18} />
+              </div>
+              <select
+                value={filterStock}
+                onChange={(event) => setFilterStock(event.target.value)}
+                className="admin-select"
+              >
+                <option value="all">All stock</option>
+                <option value="low">Low stock</option>
+                <option value="outofstock">Out of stock</option>
+              </select>
+            </div>
+          </div>
+
+          {filteredProducts.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1000px]">
+              <table className="w-full min-w-[920px]">
                 <thead>
-                  <tr className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
-                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">
-                      Product
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">
-                      SKU
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">
-                      Category
-                    </th>
-                    <th className="px-6 py-4 text-center text-sm font-bold text-slate-700">
-                      Stock
-                    </th>
-                    <th className="px-6 py-4 text-right text-sm font-bold text-slate-700">
-                      Price
-                    </th>
-                    <th className="px-6 py-4 text-center text-sm font-bold text-slate-700">
-                      Actions
-                    </th>
+                  <tr className="border-b border-slate-200 text-left text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
+                    <th className="px-4 py-4">Product</th>
+                    <th className="px-4 py-4">SKU</th>
+                    <th className="px-4 py-4">Category</th>
+                    <th className="px-4 py-4 text-center">Stock</th>
+                    <th className="px-4 py-4 text-right">Price</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredProducts.length > 0 ? (
-                    filteredProducts.map((product, idx) => {
-                      const stockStatus =
-                        product.stock === 0
-                          ? { bg: "bg-red-50", text: "text-red-700", label: "Out of Stock" }
-                          : product.stock <= 10
-                          ? { bg: "bg-yellow-50", text: "text-yellow-700", label: "Low Stock" }
-                          : { bg: "bg-green-50", text: "text-green-700", label: "In Stock" };
+                  {filteredProducts.map((product) => {
+                    const stockStatus =
+                      product.stock === 0
+                        ? "bg-red-50 text-red-700"
+                        : product.stock <= 10
+                        ? "bg-amber-50 text-amber-700"
+                        : "bg-emerald-50 text-emerald-700";
 
-                      return (
-                        <motion.tr
-                          key={product._id}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay: idx * 0.05 }}
-                          className="border-b border-slate-200 hover:bg-slate-50 transition-colors"
-                        >
-                          <td className="px-6 py-4">
-                            <div>
-                              <p className="font-bold text-slate-900">{product.name}</p>
-                              <p className="text-xs text-slate-500 mt-1">
-                                {product.brand}
-                              </p>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="text-sm font-mono font-semibold text-slate-700 bg-slate-100 px-3 py-1 rounded-lg">
-                              {product.sku || "N/A"}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="px-3 py-1 rounded-lg text-sm font-semibold bg-blue-100 text-blue-700">
-                              {product.category}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <motion.span
-                              whileHover={{ scale: 1.1 }}
-                              className={`px-3 py-1 rounded-lg text-sm font-bold ${stockStatus.bg} ${stockStatus.text} inline-block`}
-                            >
-                              {product.stock} units
-                            </motion.span>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <p className="font-bold text-slate-900 text-lg">
-                              ${product.price?.toFixed(2) || "0.00"}
-                            </p>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex justify-center gap-2">
-                              <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
-                                title="Edit"
-                              >
-                                <FiEdit2 size={18} />
-                              </motion.button>
-                              <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
-                                title="Delete"
-                              >
-                                <FiTrash2 size={18} />
-                              </motion.button>
-                            </div>
-                          </td>
-                        </motion.tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan="6" className="px-6 py-12 text-center">
-                        <p className="text-slate-600 font-semibold">
-                          {searchTerm || filterStock !== "all"
-                            ? "No products found"
-                            : "No products in inventory"}
-                        </p>
-                      </td>
-                    </tr>
-                  )}
+                    return (
+                      <tr
+                        key={product._id}
+                        className="border-b border-slate-200/80 transition hover:bg-blue-50/40"
+                      >
+                        <td className="px-4 py-5">
+                          <p className="font-bold text-slate-950">{product.name}</p>
+                          <p className="mt-1 text-sm text-slate-600">
+                            {product.brand || "Unbranded"}
+                          </p>
+                        </td>
+                        <td className="px-4 py-5">
+                          <span className="rounded-xl bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">
+                            {product.sku || "N/A"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-5">
+                          <span className="rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
+                            {product.category || "General"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-5 text-center">
+                          <span
+                            className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${stockStatus}`}
+                          >
+                            {product.stock} units
+                          </span>
+                        </td>
+                        <td className="px-4 py-5 text-right text-lg font-black text-slate-950">
+                          ${product.price?.toFixed(2) || "0.00"}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
-          </motion.div>
-        </div>
+          ) : (
+            <div className="rounded-[28px] border border-dashed border-slate-300 bg-slate-50/90 px-6 py-16 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-white text-blue-600 shadow-lg shadow-slate-900/5">
+                <FiPackage size={28} />
+              </div>
+              <h2 className="mt-6 text-2xl font-black tracking-tight text-slate-950">
+                No inventory to display yet
+              </h2>
+              <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+                {searchTerm || filterStock !== "all"
+                  ? "The current filters returned no matching products."
+                  : "Once the inventory endpoint is connected, this table is ready to present products with the same visual language as the rest of the admin area."}
+              </p>
+            </div>
+          )}
+        </motion.section>
       </div>
     </AdminLayout>
   );

@@ -1,32 +1,43 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   FiActivity,
-  FiShield,
-  FiUsers,
-  FiUserCheck,
-  FiUserX,
+  FiArrowRight,
   FiRefreshCw,
+  FiShield,
+  FiUserCheck,
+  FiUserPlus,
+  FiUserX,
+  FiUsers,
 } from "react-icons/fi";
 import axiosInstance from "../services/api";
 import { useAuth } from "../store/AuthContext";
 import { AdminLayout } from "../components/AdminLayout";
+import { AdminPageHeader } from "../components/AdminPageHeader";
+import { AdminStatCard } from "../components/AdminStatCard";
 import { COLORS } from "../constants/designTokens";
 
-const cardVariants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
+const sectionMotion = {
+  initial: { opacity: 0, y: 18 },
+  animate: { opacity: 1, y: 0 },
 };
 
 export const AdminDashboard = () => {
   const { user } = useAuth();
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-  const [updatingId, setUpdatingId] = useState("");
 
-  const fetchDashboard = async () => {
+  const fetchDashboard = async (silent = false) => {
     try {
+      if (silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
       setError("");
       const { data } = await axiosInstance.get("/admin/dashboard");
       setDashboard(data);
@@ -37,6 +48,7 @@ export const AdminDashboard = () => {
       );
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -44,307 +56,265 @@ export const AdminDashboard = () => {
     fetchDashboard();
   }, []);
 
-  const handleUpdate = async (targetUser, updates) => {
-    try {
-      setUpdatingId(targetUser._id);
-      setError("");
-      await axiosInstance.patch(`/admin/users/${targetUser._id}`, updates);
-      await fetchDashboard();
-    } catch (requestError) {
-      setError(
-        requestError?.response?.data?.message ||
-          "Failed to update user"
-      );
-    } finally {
-      setUpdatingId("");
-    }
-  };
+  const stats = [
+    {
+      label: "Total users",
+      value: dashboard?.stats?.totalUsers || 0,
+      icon: FiUsers,
+      accent: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.dark} 100%)`,
+      hint: "Everyone with an account in the store",
+    },
+    {
+      label: "Admins",
+      value: dashboard?.stats?.totalAdmins || 0,
+      icon: FiShield,
+      accent: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+      hint: "Accounts with back-office access",
+    },
+    {
+      label: "Active accounts",
+      value: dashboard?.stats?.activeUsers || 0,
+      icon: FiUserCheck,
+      accent: "linear-gradient(135deg, #22c55e 0%, #15803d 100%)",
+      hint: "Customers and staff who can sign in",
+    },
+    {
+      label: "Inactive accounts",
+      value: dashboard?.stats?.inactiveUsers || 0,
+      icon: FiUserX,
+      accent: "linear-gradient(135deg, #fb7185 0%, #dc2626 100%)",
+      hint: "Accounts currently restricted",
+    },
+  ];
+
+  const recentUsers = dashboard?.recentUsers || [];
+  const activeRate = dashboard?.stats?.totalUsers
+    ? Math.round((dashboard.stats.activeUsers / dashboard.stats.totalUsers) * 100)
+    : 0;
+  const adminCoverage = dashboard?.stats?.totalUsers
+    ? Math.round((dashboard.stats.totalAdmins / dashboard.stats.totalUsers) * 100)
+    : 0;
 
   if (loading) {
     return (
       <AdminLayout>
-        <div className="min-h-screen pt-8 pb-24 md:pb-8 flex items-center justify-center">
+        <div className="admin-panel flex min-h-[70vh] items-center justify-center p-8">
           <div className="text-center">
             <div
-              className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 mx-auto"
-              style={{
-                borderColor: COLORS.primary.main,
-                borderTopColor: "transparent",
-              }}
-            ></div>
-            <p className="text-slate-600 mt-4">Loading admin dashboard...</p>
+              className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600"
+            />
+            <p className="mt-4 text-sm font-semibold text-slate-600">
+              Loading admin dashboard...
+            </p>
           </div>
         </div>
       </AdminLayout>
     );
   }
 
-  const stats = [
-    {
-      label: "Total Users",
-      value: dashboard?.stats?.totalUsers || 0,
-      icon: FiUsers,
-      color: COLORS.primary.main,
-    },
-    {
-      label: "Admins",
-      value: dashboard?.stats?.totalAdmins || 0,
-      icon: FiShield,
-      color: "#f59e0b",
-    },
-    {
-      label: "Active Accounts",
-      value: dashboard?.stats?.activeUsers || 0,
-      icon: FiUserCheck,
-      color: "#10b981",
-    },
-    {
-      label: "Inactive Accounts",
-      value: dashboard?.stats?.inactiveUsers || 0,
-      icon: FiUserX,
-      color: "#ef4444",
-    },
-  ];
-
   return (
     <AdminLayout>
-      <div className="min-h-screen pt-8 pb-24 md:pb-8 bg-gradient-to-br from-slate-50 to-blue-50">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <motion.div
-            initial={{ opacity: 0, y: -16 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-10"
-          >
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Admin Dashboard
-              </p>
-              <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mt-2">
-                Manage your store team
-              </h1>
-              <p className="text-slate-600 text-lg mt-3">
-                Welcome back, {user?.name}. You can review accounts, promote admins,
-                and control account access from here.
-              </p>
-            </div>
+      <div className="mx-auto max-w-7xl space-y-8">
+        <AdminPageHeader
+          eyebrow="Admin Dashboard"
+          title="See the whole back office at a glance"
+          description={`Welcome back, ${user?.name || "Admin"}. This overview keeps the most important account, access, and activity signals in one place without making the dashboard feel crowded.`}
+          meta={[
+            `${activeRate}% active rate`,
+            `${adminCoverage}% admin coverage`,
+            `${recentUsers.length} recent signups`,
+          ]}
+          actions={
+            <>
+              <Link to="/admin/users" className="admin-button-secondary">
+                Manage users
+                <FiArrowRight />
+              </Link>
+              <button
+                onClick={() => fetchDashboard(true)}
+                className="admin-button-primary"
+              >
+                <FiRefreshCw className={refreshing ? "animate-spin" : ""} />
+                Refresh
+              </button>
+            </>
+          }
+        />
 
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={fetchDashboard}
-              className="px-5 py-3 rounded-2xl font-semibold text-white flex items-center justify-center gap-2 shadow-lg"
-              style={{
-                background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.dark} 100%)`,
-              }}
-            >
-              <FiRefreshCw />
-              Refresh
-            </motion.button>
-          </motion.div>
-
-          {error && (
-            <div className="mb-6 p-4 rounded-2xl border-2 border-red-200 bg-red-50 text-red-700 font-medium">
-              {error}
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-10">
-            {stats.map((stat) => {
-              const Icon = stat.icon;
-              return (
-                <motion.div
-                  key={stat.label}
-                  variants={cardVariants}
-                  initial="hidden"
-                  animate="visible"
-                  className="bg-white rounded-3xl border border-slate-200 p-6 shadow-lg hover:shadow-xl transition-shadow"
-                >
-                  <div
-                    className="w-12 h-12 rounded-2xl text-white flex items-center justify-center mb-4"
-                    style={{ background: stat.color }}
-                  >
-                    <Icon size={24} />
-                  </div>
-                  <p className="text-sm text-slate-600 font-medium">{stat.label}</p>
-                  <p className="text-4xl font-bold text-slate-900 mt-2">{stat.value}</p>
-                </motion.div>
-              );
-            })}
+        {error && (
+          <div className="admin-panel border-red-200/80 bg-red-50/90 p-4 text-sm font-semibold text-red-700">
+            {error}
           </div>
+        )}
 
-          <div className="grid grid-cols-1 xl:grid-cols-[1.6fr_1fr] gap-8">
-            <motion.section
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-3xl border border-slate-200 shadow-lg overflow-hidden"
-            >
-              <div className="p-6 border-b border-slate-200 flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-900">User Management</h2>
-                  <p className="text-slate-600 mt-1">
-                    Promote admins, restore access, or deactivate accounts.
-                  </p>
-                </div>
-                <div className="hidden md:flex items-center gap-2 text-sm text-slate-500">
-                  <FiActivity />
-                  Live role controls
-                </div>
-              </div>
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+          {stats.map((stat) => (
+            <motion.div key={stat.label} {...sectionMotion}>
+              <AdminStatCard {...stat} />
+            </motion.div>
+          ))}
+        </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[780px]">
-                  <thead className="bg-slate-50">
-                    <tr className="text-left text-sm text-slate-500">
-                      <th className="px-6 py-4 font-semibold">User</th>
-                      <th className="px-6 py-4 font-semibold">Role</th>
-                      <th className="px-6 py-4 font-semibold">Status</th>
-                      <th className="px-6 py-4 font-semibold">Joined</th>
-                      <th className="px-6 py-4 font-semibold">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dashboard?.users?.map((managedUser) => {
-                      const isSelf = managedUser._id === user?._id;
-                      const isUpdating = updatingId === managedUser._id;
-
-                      return (
-                        <tr
-                          key={managedUser._id}
-                          className="border-t border-slate-200 align-top hover:bg-slate-50 transition-colors"
-                        >
-                          <td className="px-6 py-5">
-                            <p className="font-bold text-slate-900">
-                              {managedUser.name}
-                              {isSelf ? " (You)" : ""}
-                            </p>
-                            <p className="text-sm text-slate-600 mt-1">
-                              {managedUser.email}
-                            </p>
-                          </td>
-                          <td className="px-6 py-5">
-                            <span
-                              className="inline-flex px-3 py-1 rounded-full text-sm font-semibold"
-                              style={{
-                                background:
-                                  managedUser.role === "admin"
-                                    ? "#fef3c7"
-                                    : `${COLORS.primary.main}15`,
-                                color:
-                                  managedUser.role === "admin"
-                                    ? "#b45309"
-                                    : COLORS.primary.main,
-                              }}
-                            >
-                              {managedUser.role}
-                            </span>
-                          </td>
-                          <td className="px-6 py-5">
-                            <span
-                              className="inline-flex px-3 py-1 rounded-full text-sm font-semibold"
-                              style={{
-                                background: managedUser.isActive ? "#dcfce7" : "#fee2e2",
-                                color: managedUser.isActive ? "#15803d" : "#b91c1c",
-                              }}
-                            >
-                              {managedUser.isActive ? "Active" : "Inactive"}
-                            </span>
-                          </td>
-                          <td className="px-6 py-5 text-sm text-slate-600">
-                            {new Date(managedUser.createdAt).toLocaleDateString()}
-                          </td>
-                          <td className="px-6 py-5">
-                            <div className="flex flex-wrap gap-2">
-                              <button
-                                disabled={isSelf || isUpdating}
-                                onClick={() =>
-                                  handleUpdate(managedUser, {
-                                    role:
-                                      managedUser.role === "admin" ? "user" : "admin",
-                                  })
-                                }
-                                className="px-3 py-2 rounded-xl text-sm font-semibold border border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
-                              >
-                                {managedUser.role === "admin"
-                                  ? "Make User"
-                                  : "Make Admin"}
-                              </button>
-                              <button
-                                disabled={isSelf || isUpdating}
-                                onClick={() =>
-                                  handleUpdate(managedUser, {
-                                    isActive: !managedUser.isActive,
-                                  })
-                                }
-                                className="px-3 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                style={{
-                                  background: managedUser.isActive ? "#ef4444" : "#10b981",
-                                }}
-                              >
-                                {managedUser.isActive ? "Deactivate" : "Activate"}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </motion.section>
-
-            <motion.aside
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-6"
-            >
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-lg p-6">
-                <h2 className="text-2xl font-bold text-slate-900 mb-4">
-                  Recent Signups
+        <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1.4fr_1fr]">
+          <motion.section {...sectionMotion} className="admin-section">
+            <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="admin-chip">Team health</p>
+                <h2 className="mt-4 text-2xl font-black tracking-tight text-slate-950">
+                  Account signals
                 </h2>
-                <div className="space-y-4">
-                  {dashboard?.recentUsers?.map((recentUser) => (
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Quick ratios to help you decide whether access management needs attention.
+                </p>
+              </div>
+              <Link to="/admin/analytics" className="admin-button-secondary">
+                Open analytics
+              </Link>
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <div className="admin-soft-panel p-5">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-slate-500">
+                    Active account ratio
+                  </p>
+                  <span className="text-sm font-black text-slate-950">
+                    {activeRate}%
+                  </span>
+                </div>
+                <div className="mt-4 h-3 rounded-full bg-slate-200">
+                  <div
+                    className="h-3 rounded-full bg-gradient-to-r from-emerald-500 to-blue-500"
+                    style={{ width: `${activeRate}%` }}
+                  />
+                </div>
+                <p className="mt-3 text-sm text-slate-600">
+                  Most accounts are currently able to sign in and use the store.
+                </p>
+              </div>
+
+              <div className="admin-soft-panel p-5">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-slate-500">
+                    Admin share
+                  </p>
+                  <span className="text-sm font-black text-slate-950">
+                    {adminCoverage}%
+                  </span>
+                </div>
+                <div className="mt-4 h-3 rounded-full bg-slate-200">
+                  <div
+                    className="h-3 rounded-full bg-gradient-to-r from-amber-400 to-orange-500"
+                    style={{ width: `${adminCoverage}%` }}
+                  />
+                </div>
+                <p className="mt-3 text-sm text-slate-600">
+                  Keep admin access limited so operational controls stay safe.
+                </p>
+              </div>
+
+              <div className="admin-soft-panel p-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-blue-700">
+                    <FiUserPlus size={20} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-500">
+                      Newest account
+                    </p>
+                    <p className="mt-1 text-lg font-black text-slate-950">
+                      {recentUsers[0]?.name || "No recent signups"}
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-4 text-sm text-slate-600">
+                  {recentUsers[0]
+                    ? `Joined ${new Date(recentUsers[0].createdAt).toLocaleString()}.`
+                    : "Recent user activity will appear here."}
+                </p>
+              </div>
+
+              <div className="rounded-3xl bg-slate-950 p-5 text-white shadow-xl shadow-slate-950/15">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-blue-200">
+                    <FiActivity size={20} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-300">
+                      Recommended action
+                    </p>
+                    <p className="mt-1 text-lg font-black">Review inactive users</p>
+                  </div>
+                </div>
+                <p className="mt-4 text-sm leading-6 text-slate-300">
+                  There are {dashboard?.stats?.inactiveUsers || 0} inactive accounts.
+                  Confirm whether they are intentional restrictions or stale records.
+                </p>
+              </div>
+            </div>
+          </motion.section>
+
+          <motion.aside {...sectionMotion} className="space-y-8">
+            <section className="admin-section">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="admin-chip">Recent signups</p>
+                  <h2 className="mt-4 text-2xl font-black tracking-tight text-slate-950">
+                    Latest users
+                  </h2>
+                </div>
+                <Link to="/admin/users" className="text-sm font-semibold text-blue-600">
+                  View all
+                </Link>
+              </div>
+
+              <div className="mt-6 space-y-3">
+                {recentUsers.length > 0 ? (
+                  recentUsers.map((recentUser) => (
                     <div
                       key={recentUser._id}
-                      className="p-4 rounded-2xl border border-slate-200 hover:border-blue-300 transition-colors"
+                      className="rounded-2xl border border-slate-200 bg-white px-4 py-4 transition hover:border-blue-200 hover:bg-blue-50/40"
                     >
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="font-semibold text-slate-900">
-                            {recentUser.name}
-                          </p>
-                          <p className="text-sm text-slate-600 mt-1">
+                          <p className="font-bold text-slate-950">{recentUser.name}</p>
+                          <p className="mt-1 text-sm text-slate-600">
                             {recentUser.email}
                           </p>
                         </div>
-                        <span className="text-xs uppercase tracking-wide text-slate-500 font-semibold">
+                        <span className="rounded-full bg-slate-950 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white">
                           {recentUser.role}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500 mt-3">
+                      <p className="mt-3 text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
                         Joined {new Date(recentUser.createdAt).toLocaleString()}
                       </p>
                     </div>
-                  ))}
-                </div>
+                  ))
+                ) : (
+                  <div className="admin-soft-panel p-5 text-sm text-slate-600">
+                    No new signups yet.
+                  </div>
+                )}
               </div>
+            </section>
 
-              <div className="rounded-3xl p-6 text-white shadow-lg"
-                style={{
-                  background: `linear-gradient(145deg, ${COLORS.primary.dark} 0%, #0f172a 100%)`,
-                }}
-              >
-                <p className="text-sm uppercase tracking-[0.2em] text-blue-100">
-                  Admin Notes
+            <section className="rounded-[28px] bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-6 text-white shadow-xl shadow-slate-950/20">
+              <p className="admin-chip border-white/10 bg-white/5 text-blue-100">
+                Admin notes
+              </p>
+              <h3 className="mt-4 text-2xl font-black tracking-tight">
+                Keep operations predictable
+              </h3>
+              <div className="mt-5 space-y-4 text-sm leading-6 text-slate-300">
+                <p>Only admins can access this workspace and manage other accounts.</p>
+                <p>Admins cannot remove their own admin role or deactivate themselves.</p>
+                <p>
+                  Use the dedicated users page when you need to change roles or account status.
                 </p>
-                <h3 className="text-2xl font-bold mt-3">Management rules</h3>
-                <ul className="mt-4 space-y-3 text-sm text-blue-50">
-                  <li>Only admins can open this dashboard and manage other accounts.</li>
-                  <li>Guests can browse the storefront without creating an account.</li>
-                  <li>Admins cannot remove their own admin role or deactivate themselves.</li>
-                </ul>
               </div>
-            </motion.aside>
-          </div>
+            </section>
+          </motion.aside>
         </div>
       </div>
     </AdminLayout>

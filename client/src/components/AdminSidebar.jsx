@@ -1,59 +1,39 @@
-import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Link, useLocation } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import {
-  FiMenu,
-  FiX,
-  FiHome,
   FiBox,
-  // FiBarChart3,
-  FiUsers,
-  FiTrendingUp,
-  FiSettings,
+  FiHome,
   FiLogOut,
-  FiChevronRight,
+  FiMenu,
+  FiSettings,
+  FiTrendingUp,
+  FiUsers,
+  FiX,
 } from "react-icons/fi";
+import { COLORS } from "../constants/designTokens";
 import { useAuth } from "../store/AuthContext";
 
 export const AdminSidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   const navItems = [
-    {
-      label: "Dashboard",
-      icon: FiHome,
-      path: "/admin",
-      badge: null,
-    },
-    {
-      label: "Inventory",
-      icon: FiBox,
-      path: "/admin/inventory",
-      badge: null,
-    },
-    {
-      label: "Users",
-      icon: FiUsers,
-      path: "/admin/users",
-      badge: null,
-    },
-    {
-      label: "Analytics",
-      icon: FiTrendingUp,
-      path: "/admin/analytics",
-      badge: "Soon",
-    },
-    {
-      label: "Settings",
-      icon: FiSettings,
-      path: "/admin/settings",
-      badge: null,
-    },
+    { label: "Dashboard", icon: FiHome, path: "/admin" },
+    { label: "Inventory", icon: FiBox, path: "/admin/inventory" },
+    { label: "Users", icon: FiUsers, path: "/admin/users" },
+    { label: "Analytics", icon: FiTrendingUp, path: "/admin/analytics" },
+    { label: "Settings", icon: FiSettings, path: "/admin/settings" },
   ];
 
-  const isActive = (path) => location.pathname === path;
+  useEffect(() => {
+    setIsOpen(false);
+  }, [location.pathname]);
+
+  const isActive = (path) =>
+    path === "/admin"
+      ? location.pathname === path
+      : location.pathname.startsWith(path);
 
   const handleLogout = () => {
     logout();
@@ -62,88 +42,105 @@ export const AdminSidebar = () => {
 
   return (
     <>
-      {/* Mobile Menu Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-20 left-4 z-40 p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 transition-colors"
+        onClick={() => setIsOpen((current) => !current)}
+        className="fixed left-4 top-4 z-[70] flex h-11 w-11 items-center justify-center border border-blue-100 bg-white text-slate-900 shadow-lg shadow-blue-100/70 lg:hidden"
+        aria-label={isOpen ? "Close admin menu" : "Open admin menu"}
       >
-        {isOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+        {isOpen ? <FiX size={20} /> : <FiMenu size={20} />}
       </button>
 
-      {/* Overlay */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsOpen(false)}
-            className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30 top-16"
-          />
-        )}
-      </AnimatePresence>
+      {isOpen && (
+        <div
+          onClick={() => setIsOpen(false)}
+          className="fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-sm lg:hidden"
+        />
+      )}
 
-      {/* Sidebar */}
-      <motion.div
-        initial={{ x: -280 }}
-        animate={{ x: isOpen ? 0 : -280 }}
-        exit={{ x: -280 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="fixed lg:static top-16 left-0 w-72 h-[calc(100vh-4rem)] bg-gradient-to-b from-slate-900 to-slate-800 border-r border-slate-700 z-40 flex flex-col shadow-2xl"
+      <aside
+        className={`fixed inset-y-0 left-0 z-[60] flex w-72 flex-col border-r border-blue-100 bg-white text-slate-900 shadow-2xl shadow-blue-100/60 transition-transform duration-300 ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          }`}
       >
-        {/* Header */}
-        <div className="p-6 border-b border-slate-700">
-          <h2 className="text-xl font-black text-white mb-1">E-Mobile</h2>
-          <p className="text-xs text-slate-400 font-semibold">Admin Panel</p>
+        <div
+          className="shrink-0 border-b border-blue-100 px-6 py-5 text-white"
+          style={{
+            background: `linear-gradient(180deg, ${COLORS.primary.main} 0%, ${COLORS.primary.dark} 100%)`,
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex rounded-full h-11 w-11 items-center justify-center border border-white/20 bg-white/15 text-lg font-black">
+              EM
+            </div>
+            <div>
+              <p className="text-2xl font-black tracking-tight">E-Mobile</p>
+              <p className="text-xs uppercase tracking-[0.3em] text-blue-100">
+                Admin Workspace
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 border rounded-xl border-white/20 bg-white/10 px-4 py-3">
+            <p className="text-sm font-semibold text-white">{user?.name || "Admin"}</p>
+            <p className="mt-1 text-[11px] uppercase tracking-[0.24em] text-blue-100">
+              {user?.role || "Administrator"}
+            </p>
+          </div>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-2">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.path);
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 no-scrollbar">
+          <p className="px-2 text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
+            Navigation
+          </p>
 
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setIsOpen(false)}
-                className="group relative"
-              >
-                <motion.div
-                  whileHover={{ x: 4 }}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all duration-300 ${active
-                    ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
-                    : "text-slate-300 hover:bg-slate-700 hover:text-white"
+          <nav className="mt-3 space-y-2 pb-4">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.path);
+
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={`flex rounded-xl items-center gap-3 border px-4 py-3 transition ${active
+                    ? "border-blue-200 bg-blue-50 text-blue-700"
+                    : "border-transparent bg-white text-slate-700 hover:border-blue-100 hover:bg-blue-50/60 hover:text-blue-700"
                     }`}
                 >
-                  <Icon size={20} />
-                  <span className="flex-1">{item.label}</span>
-
-                  {item.badge && (
-                    <span className="px-2 py-1 text-xs font-bold rounded-full bg-yellow-500 text-slate-900">
-                      {item.badge}
-                    </span>
-                  )}
-
-                  {active && <FiChevronRight size={18} />}
-                </motion.div>
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-slate-700 space-y-3">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-slate-300 hover:bg-red-600 hover:text-white transition-all duration-300"
-          >
-            <FiLogOut size={20} />
-            <span>Logout</span>
-          </button>
+                  <div
+                    className={`flex h-6 w-10 items-center justify-center border ${active
+                      ? "border-blue-200 bg-white text-blue-700"
+                      : "border-blue-100 bg-blue-50 text-slate-500"
+                      }`}
+                  >
+                    <Icon size={18} />
+                  </div>
+                  <span className="text-sm font-semibold">{item.label}</span>
+                </NavLink>
+              );
+            })}
+          </nav>
         </div>
-      </motion.div>
+
+        <div className="shrink-0 border-t border-blue-100 px-4 py-4 bg-white">
+          <div className="space-y-2">
+            <Link
+              to="/"
+              className="flex items-center gap-3 border border-blue-100 bg-blue-50 px-4 py-3 text-sm rounded-xl font-semibold text-blue-700 transition hover:bg-blue-100"
+            >
+              <FiHome size={18} />
+              <span>Home</span>
+            </Link>
+
+            <button
+              onClick={handleLogout}
+              className="flex w-full items-center gap-3 border border-red-100 bg-white px-4 py-3 text-sm rounded-xl font-semibold text-red-600 transition hover:bg-red-50"
+            >
+              <FiLogOut size={18} />
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+      </aside>
     </>
   );
 };
