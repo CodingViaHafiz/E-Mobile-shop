@@ -10,7 +10,10 @@ const errorHandler = (err, req, res, next) => {
 
   if (err.code === 11000) {
     statusCode = 400;
-    message = "Email already registered";
+    const duplicateField = Object.keys(err.keyValue || {})[0];
+    message = duplicateField
+      ? `${duplicateField} already exists`
+      : "A unique field already exists";
   }
 
   console.error(`[Error] ${statusCode}: ${message}`);

@@ -4,11 +4,11 @@ import { motion } from "framer-motion";
 import {
   FiActivity,
   FiArrowRight,
+  FiBox,
+  FiPackage,
   FiRefreshCw,
   FiShield,
-  FiUserCheck,
-  FiUserPlus,
-  FiUserX,
+  FiShoppingBag,
   FiUsers,
 } from "react-icons/fi";
 import axiosInstance from "../services/api";
@@ -65,25 +65,25 @@ export const AdminDashboard = () => {
       hint: "Everyone with an account in the store",
     },
     {
-      label: "Admins",
-      value: dashboard?.stats?.totalAdmins || 0,
-      icon: FiShield,
-      accent: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-      hint: "Accounts with back-office access",
-    },
-    {
-      label: "Active accounts",
-      value: dashboard?.stats?.activeUsers || 0,
-      icon: FiUserCheck,
+      label: "Products",
+      value: dashboard?.stats?.totalProducts || 0,
+      icon: FiPackage,
       accent: "linear-gradient(135deg, #22c55e 0%, #15803d 100%)",
-      hint: "Customers and staff who can sign in",
+      hint: "Inventory records currently in the system",
     },
     {
-      label: "Inactive accounts",
-      value: dashboard?.stats?.inactiveUsers || 0,
-      icon: FiUserX,
+      label: "Orders",
+      value: dashboard?.stats?.totalOrders || 0,
+      icon: FiShoppingBag,
+      accent: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+      hint: "Orders placed through the storefront",
+    },
+    {
+      label: "Low stock",
+      value: dashboard?.stats?.lowStockProducts || 0,
+      icon: FiBox,
       accent: "linear-gradient(135deg, #fb7185 0%, #dc2626 100%)",
-      hint: "Accounts currently restricted",
+      hint: "Products that need replenishment soon",
     },
   ];
 
@@ -121,7 +121,7 @@ export const AdminDashboard = () => {
           description={`Welcome back, ${user?.name || "Admin"}. This overview keeps the most important account, access, and activity signals in one place without making the dashboard feel crowded.`}
           meta={[
             `${activeRate}% active rate`,
-            `${adminCoverage}% admin coverage`,
+            `${dashboard?.stats?.outOfStockProducts || 0} out of stock`,
             `${recentUsers.length} recent signups`,
           ]}
           actions={
@@ -216,21 +216,19 @@ export const AdminDashboard = () => {
               <div className="admin-soft-panel p-5">
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-blue-700">
-                    <FiUserPlus size={20} />
+                    <FiShield size={20} />
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-slate-500">
-                      Newest account
+                      Admin share
                     </p>
                     <p className="mt-1 text-lg font-black text-slate-950">
-                      {recentUsers[0]?.name || "No recent signups"}
+                      {adminCoverage}%
                     </p>
                   </div>
                 </div>
                 <p className="mt-4 text-sm text-slate-600">
-                  {recentUsers[0]
-                    ? `Joined ${new Date(recentUsers[0].createdAt).toLocaleString()}.`
-                    : "Recent user activity will appear here."}
+                  Keep privileged access intentionally small as the team grows.
                 </p>
               </div>
 
@@ -243,12 +241,13 @@ export const AdminDashboard = () => {
                     <p className="text-sm font-semibold text-slate-300">
                       Recommended action
                     </p>
-                    <p className="mt-1 text-lg font-black">Review inactive users</p>
+                    <p className="mt-1 text-lg font-black">Review low-stock items</p>
                   </div>
                 </div>
                 <p className="mt-4 text-sm leading-6 text-slate-300">
-                  There are {dashboard?.stats?.inactiveUsers || 0} inactive accounts.
-                  Confirm whether they are intentional restrictions or stale records.
+                  There are {dashboard?.stats?.lowStockProducts || 0} low-stock products
+                  and {dashboard?.stats?.outOfStockProducts || 0} out-of-stock products.
+                  Prioritize replenishment on the inventory page.
                 </p>
               </div>
             </div>

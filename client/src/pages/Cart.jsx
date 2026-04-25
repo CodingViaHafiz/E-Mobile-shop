@@ -1,317 +1,270 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
+  FiArrowRight,
+  FiMinus,
+  FiPlus,
+  FiRefreshCw,
+  FiShoppingCart,
   FiSmartphone,
   FiTrash2,
-  FiPlus,
-  FiMinus,
-  FiShoppingCart,
-  FiArrowRight,
-  FiCheck,
 } from "react-icons/fi";
 import { COLORS } from "../constants/designTokens";
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.1,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.4 },
-  },
-};
+import { inventoryApi } from "../services/inventory";
+import { useCart } from "../store/CartContext";
 
 export const Cart = () => {
-  const [cartItems, setCartItems] = useState([
-    {
-      id: 1,
-      name: "iPhone 15 Pro",
-      price: 999,
-      quantity: 1,
-      image: "FiSmartphone",
-    },
-    {
-      id: 2,
-      name: "Samsung S24 Ultra",
-      price: 1199,
-      quantity: 1,
-      image: "FiSmartphone",
-    },
-  ]);
+  const {
+    items,
+    itemCount,
+    subtotal,
+    totalPtaTax,
+    grandTotal,
+    submitting,
+    checkout,
+    removeFromCart,
+    syncProduct,
+    updateQuantity,
+  } = useCart();
+  const [syncing, setSyncing] = useState(false);
+  const [feedback, setFeedback] = useState("");
 
-  const updateQuantity = (id, quantity) => {
-    if (quantity === 0) {
-      removeItem(id);
-    } else {
-      setCartItems(
-        cartItems.map((item) =>
-          item.id === id ? { ...item, quantity } : item
-        )
+  const refreshProducts = async () => {
+    if (items.length === 0) {
+      return;
+    }
+
+    setSyncing(true);
+
+    try {
+      const results = await Promise.allSettled(
+        items.map((item) => inventoryApi.getProductById(item.productId)),
       );
+
+      results.forEach((result) => {
+        if (result.status === "fulfilled") {
+          syncProduct(result.value.product);
+        }
+      });
+    } finally {
+      setSyncing(false);
     }
   };
 
-  const removeItem = (id) => {
-    setCartItems(cartItems.filter((item) => item.id !== id));
-  };
+  useEffect(() => {
+    refreshProducts();
+  }, [items, syncProduct]);
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shipping = subtotal > 0 ? 10 : 0;
-  const tax = Math.round(subtotal * 0.1 * 100) / 100;
-  const total = subtotal + shipping + tax;
+  const hasUnavailableItems = items.some((item) => item.stock === 0);
 
   return (
-    <div className="min-h-screen pt-20 pb-24 md:pb-8" style={{ background: COLORS.neutral.bg }}>
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
+    <div
+      className="min-h-screen pb-24 pt-20 md:pb-8"
+      style={{ background: COLORS.neutral.bg }}
+    >
+      <div className="mx-auto max-w-7xl px-4 py-8">
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -18 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-8 rounded-[32px] border border-white/60 bg-white/85 p-6 shadow-xl shadow-slate-900/5 backdrop-blur-xl md:p-8"
         >
-          <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 mb-2">
-            Shopping Cart
-          </h1>
-          <p className="text-neutral-600 text-lg">
-            {cartItems.length} {cartItems.length === 1 ? "item" : "items"} in cart
-          </p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-blue-700">
+                Live Cart
+              </p>
+              <h1 className="mt-5 text-4xl font-black tracking-tight text-slate-950">
+                Review your order
+              </h1>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                Checkout triggers a backend order and deducts stock through the same
+                inventory service used by the admin panel.
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={syncing}
+              onClick={refreshProducts}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition"
+            >
+              <FiRefreshCw className={syncing ? "animate-spin" : ""} />
+              Refresh stock
+            </button>
+          </div>
         </motion.div>
 
-        {cartItems.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Cart Items */}
-            <motion.div
-              className="lg:col-span-2 space-y-4"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              <AnimatePresence mode="popLayout">
-                {cartItems.map((item) => (
-                  <motion.div
-                    key={item.id}
-                    variants={itemVariants}
-                    exit={{ opacity: 0, x: -100 }}
-                    layout
-                    className="bg-white rounded-2xl border-2 border-neutral-100 p-6 hover:border-blue-600 transition-all duration-300"
-                  >
-                    <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
-                      {/* Product Image */}
-                      <div
-                        className="w-24 h-24 rounded-xl flex items-center justify-center text-4xl flex-shrink-0"
-                        style={{
-                          background: `linear-gradient(135deg, ${COLORS.secondary.main}80 0%, ${COLORS.primary.main}20 100%)`,
-                        }}
-                      >
-                        <FiSmartphone />
-                      </div>
+        {feedback && (
+          <div className="mb-5 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
+            {feedback}
+          </div>
+        )}
 
-                      {/* Product Info */}
-                      <div className="flex-1">
-                        <h3 className="text-lg font-bold text-neutral-900 mb-1">
-                          {item.name}
-                        </h3>
-                        <p
-                          className="text-sm font-semibold"
-                          style={{ color: COLORS.primary.main }}
-                        >
-                          ${item.price}
-                        </p>
-                      </div>
-
-                      {/* Quantity Controls */}
-                      <div className="flex items-center gap-3 bg-neutral-100 rounded-xl p-2">
-                        <motion.button
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() =>
-                            updateQuantity(item.id, item.quantity - 1)
-                          }
-                          className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-neutral-200 transition-colors duration-300"
-                        >
-                          <FiMinus size={18} />
-                        </motion.button>
-                        <span className="w-8 text-center font-bold text-neutral-900">
-                          {item.quantity}
-                        </span>
-                        <motion.button
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() =>
-                            updateQuantity(item.id, item.quantity + 1)
-                          }
-                          className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-neutral-200 transition-colors duration-300"
-                        >
-                          <FiPlus size={18} />
-                        </motion.button>
-                      </div>
-
-                      {/* Item Total */}
-                      <div className="text-right">
-                        <p className="text-sm text-neutral-600 mb-1">Subtotal</p>
-                        <p className="text-2xl font-bold text-neutral-900">
-                          ${(item.price * item.quantity).toFixed(2)}
-                        </p>
-                      </div>
-
-                      {/* Remove Button */}
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => removeItem(item.id)}
-                        className="w-10 h-10 rounded-lg flex items-center justify-center text-red-600 hover:bg-red-50 transition-all duration-300"
-                      >
-                        <FiTrash2 size={20} />
-                      </motion.button>
+        {items.length > 0 ? (
+          <div className="grid gap-8 lg:grid-cols-[1.3fr_0.7fr]">
+            <div className="space-y-4">
+              {items.map((item) => (
+                <motion.div
+                  key={item.productId}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="rounded-[28px] border border-white/60 bg-white/85 p-5 shadow-xl shadow-slate-900/5 backdrop-blur-xl"
+                >
+                  <div className="flex flex-col gap-5 md:flex-row md:items-center">
+                    <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-blue-100 via-slate-50 to-amber-50">
+                      {item.image ? (
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <FiSmartphone className="text-4xl text-blue-700/70" />
+                      )}
                     </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </motion.div>
 
-            {/* Order Summary */}
-            <motion.div
-              className="lg:col-span-1"
-              initial={{ opacity: 0, x: 20 }}
+                    <div className="flex-1">
+                      <Link
+                        to={`/product/${item.productId}`}
+                        className="text-lg font-black tracking-tight text-slate-950 transition hover:text-blue-700"
+                      >
+                        {item.name}
+                      </Link>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {item.brand} {item.model}
+                      </p>
+                      <p className="mt-3 text-sm font-semibold text-slate-600">
+                        Stock available: {item.stock}
+                      </p>
+                    </div>
+
+                    <div className="inline-flex items-center rounded-2xl border border-slate-200 bg-white p-2">
+                      <button
+                        type="button"
+                        onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                        className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-700 transition hover:bg-slate-100"
+                      >
+                        <FiMinus />
+                      </button>
+                      <span className="w-10 text-center font-bold text-slate-950">
+                        {item.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={item.quantity >= item.stock}
+                        onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                        className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-700 transition hover:bg-slate-100 disabled:opacity-40"
+                      >
+                        <FiPlus />
+                      </button>
+                    </div>
+
+                    <div className="text-right">
+                      <p className="text-sm text-slate-500">Item total</p>
+                      <p className="mt-1 text-2xl font-black text-slate-950">
+                        ${(item.price * item.quantity).toFixed(2)}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        PTA tax: ${(item.ptaTax * item.quantity).toFixed(2)}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => removeFromCart(item.productId)}
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-red-100 bg-white text-red-600 transition hover:bg-red-50"
+                    >
+                      <FiTrash2 />
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            <motion.aside
+              initial={{ opacity: 0, x: 16 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
+              className="h-fit rounded-[32px] border border-white/60 bg-white/85 p-6 shadow-xl shadow-slate-900/5 backdrop-blur-xl"
             >
-              <div className="bg-white rounded-2xl border-2 border-neutral-100 p-8 sticky top-24">
-                <h2 className="text-2xl font-bold text-neutral-900 mb-6">
-                  Order Summary
-                </h2>
+              <div className="rounded-[28px] bg-slate-950 p-5 text-white">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-100">
+                  Order summary
+                </p>
+                <p className="mt-3 text-3xl font-black">{itemCount} items</p>
+              </div>
 
-                {/* Summary Items */}
-                <div className="space-y-3 mb-6 pb-6 border-b-2 border-neutral-200">
-                  <div className="flex justify-between items-center">
-                    <span className="text-neutral-600 font-medium">Subtotal</span>
-                    <span className="font-bold text-neutral-900">
-                      ${subtotal.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-neutral-600 font-medium">Shipping</span>
-                    <span className="font-bold text-neutral-900">
-                      ${shipping.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-neutral-600 font-medium">Tax</span>
-                    <span className="font-bold text-neutral-900">
-                      ${tax.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Total */}
-                <div className="flex justify-between items-center mb-8 p-4 rounded-xl" style={{
-                  background: `${COLORS.secondary.main}60`,
-                }}>
-                  <span className="text-lg font-bold text-neutral-900">Total</span>
-                  <span className="text-3xl font-bold text-neutral-900">
-                    ${total.toFixed(2)}
+              <div className="mt-6 space-y-4 text-sm text-slate-600">
+                <div className="flex items-center justify-between">
+                  <span>Subtotal</span>
+                  <span className="font-semibold text-slate-900">
+                    ${subtotal.toFixed(2)}
                   </span>
                 </div>
-
-                {/* Checkout Button */}
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full py-4 rounded-xl font-bold text-lg text-white flex items-center justify-center gap-2 transition-all duration-300 shadow-lg hover:shadow-xl mb-4"
-                  style={{
-                    background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.dark} 100%)`,
-                  }}
-                >
-                  <FiShoppingCart size={20} />
-                  Proceed to Checkout
-                </motion.button>
-
-                {/* Continue Shopping */}
-                <Link
-                  to="/shop"
-                  className="w-full py-3 rounded-xl font-bold text-lg text-center transition-all duration-300 border-2"
-                  style={{
-                    borderColor: COLORS.primary.main,
-                    color: COLORS.primary.main,
-                    backgroundColor: `${COLORS.primary.main}10`,
-                  }}
-                >
-                  Continue Shopping
-                </Link>
-
-                {/* Promo Code */}
-                <div className="mt-6 pt-6 border-t-2 border-neutral-200">
-                  <input
-                    type="text"
-                    placeholder="Enter promo code"
-                    className="w-full px-4 py-2 rounded-lg border-2 border-neutral-200 focus:border-blue-600 focus:outline-none transition-colors duration-300 mb-2"
-                  />
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    className="w-full py-2 rounded-lg font-medium text-neutral-700 hover:bg-neutral-100 transition-all duration-300"
-                  >
-                    Apply Code
-                  </motion.button>
+                <div className="flex items-center justify-between">
+                  <span>Total PTA tax</span>
+                  <span className="font-semibold text-slate-900">
+                    ${totalPtaTax.toFixed(2)}
+                  </span>
                 </div>
-
-                {/* Trust Badges */}
-                <div className="mt-6 space-y-2 text-xs text-neutral-600">
-                  <div className="flex items-center gap-2">
-                    <FiCheck size={16} style={{ color: COLORS.primary.main }} />
-                    Secure checkout
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <FiCheck size={16} style={{ color: COLORS.primary.main }} />
-                    Fast shipping
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <FiCheck size={16} style={{ color: COLORS.primary.main }} />
-                    Easy returns
-                  </div>
+                <div className="flex items-center justify-between border-t border-slate-200 pt-4 text-base">
+                  <span className="font-semibold text-slate-900">Grand total</span>
+                  <span className="text-2xl font-black text-slate-950">
+                    ${grandTotal.toFixed(2)}
+                  </span>
                 </div>
               </div>
-            </motion.div>
+
+              {hasUnavailableItems && (
+                <div className="mt-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                  One or more items are out of stock. Remove them before checkout.
+                </div>
+              )}
+
+              <button
+                type="button"
+                disabled={submitting || hasUnavailableItems}
+                onClick={async () => {
+                  const result = await checkout();
+                  setFeedback(
+                    result.success && result.order?.orderNumber
+                      ? `${result.message}. Order number: ${result.order.orderNumber}`
+                      : result.message,
+                  );
+                }}
+                className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-4 text-sm font-semibold text-white shadow-lg shadow-slate-950/15 transition hover:-translate-y-0.5 hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <FiShoppingCart />
+                {submitting ? "Placing order..." : "Place Order"}
+              </button>
+
+              <Link
+                to="/shop"
+                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-semibold text-slate-700 transition"
+              >
+                Continue shopping
+                <FiArrowRight />
+              </Link>
+            </motion.aside>
           </div>
         ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl border-2 border-neutral-100 p-16 text-center"
-          >
-            <div
-              className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
-              style={{
-                background: `${COLORS.primary.main}20`,
-              }}
-            >
-              <FiShoppingCart size={40} style={{ color: COLORS.primary.main }} />
+          <div className="rounded-[32px] border border-dashed border-slate-300 bg-white/70 px-6 py-20 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-blue-50 text-blue-700">
+              <FiShoppingCart size={28} />
             </div>
-            <h2 className="text-3xl font-bold text-neutral-900 mb-2">
+            <h2 className="mt-6 text-3xl font-black tracking-tight text-slate-950">
               Your cart is empty
             </h2>
-            <p className="text-neutral-600 text-lg mb-8">
-              Looks like you haven't added anything to your cart yet.
+            <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+              Browse the live inventory and add products to start an order.
             </p>
             <Link
               to="/shop"
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-lg text-white transition-all duration-300"
-              style={{
-                background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.dark} 100%)`,
-              }}
+              className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
             >
-              Start Shopping
-              <FiArrowRight size={20} />
+              Start shopping
+              <FiArrowRight />
             </Link>
-          </motion.div>
+          </div>
         )}
       </div>
     </div>

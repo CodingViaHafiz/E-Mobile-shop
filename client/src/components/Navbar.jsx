@@ -12,12 +12,14 @@ import {
 } from "react-icons/fi";
 import { COLORS, Z_INDEX } from "../constants/designTokens";
 import { useAuth } from "../store/AuthContext";
+import { useCart } from "../store/CartContext";
 
 export const Navbar = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [isHovering, setIsHovering] = useState(null);
   const { isAuthenticated, isAdmin, user, logout } = useAuth();
+  const { itemCount } = useCart();
 
   const isActive = (path) => pathname === path;
   const baseItems = [
@@ -158,7 +160,14 @@ export const Navbar = () => {
                   )}
 
                   <div className="relative z-10 flex items-center gap-2">
-                    <Icon className="text-xl transition-transform duration-300 group-hover:scale-110" />
+                    <div className="relative">
+                      <Icon className="text-xl transition-transform duration-300 group-hover:scale-110" />
+                      {path === "/cart" && itemCount > 0 && (
+                        <span className="absolute -right-2 -top-2 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-slate-950 px-1 text-[10px] font-bold text-white">
+                          {itemCount}
+                        </span>
+                      )}
+                    </div>
                     <span className="hidden lg:inline">{label}</span>
                   </div>
                 </Link>
@@ -256,6 +265,11 @@ export const Navbar = () => {
 
                 <div className="relative z-10 text-2xl transition-transform duration-300 group-hover:scale-110">
                   <Icon />
+                  {path === "/cart" && itemCount > 0 && (
+                    <span className="absolute -right-3 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-slate-950 px-1 text-[10px] font-bold text-white">
+                      {itemCount}
+                    </span>
+                  )}
                 </div>
                 <span className="text-xs font-semibold relative z-10">{label}</span>
               </Link>

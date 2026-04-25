@@ -1,6 +1,21 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
+const attachUserFromToken = async (token) => {
+  if (!token) {
+    return null;
+  }
+
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const user = await User.findById(decoded.id);
+
+  if (!user || !user.isActive) {
+    return null;
+  }
+
+  return user;
+};
+
 export const protect = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
@@ -11,10 +26,9 @@ export const protect = async (req, res, next) => {
         .json({ message: "Not authorized to access this route" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id);
+    const user = await attachUserFromToken(token);
 
-    if (!user || !user.isActive) {
+    if (!user) {
       return res
         .status(401)
         .json({ message: "Not authorized to access this route" });
@@ -27,6 +41,27 @@ export const protect = async (req, res, next) => {
     return res
       .status(401)
       .json({ message: "Not authorized to access this route" });
+  }
+};
+
+export const optionalProtect = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return next();
+    }
+
+    const user = await attachUserFromToken(token);
+
+    if (user) {
+      req.user = user;
+      req.userId = user._id;
+    }
+
+    next();
+  } catch {
+    next();
   }
 };
 

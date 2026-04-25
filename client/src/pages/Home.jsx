@@ -1,15 +1,18 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  FiTruck,
-  FiLock,
-  FiCheckCircle,
-  FiSmartphone,
   FiArrowRight,
+  FiCheckCircle,
+  FiLock,
+  FiShoppingCart,
+  FiSmartphone,
   FiStar,
+  FiTruck,
 } from "react-icons/fi";
-import { COLORS, ANIMATIONS, Z_INDEX } from "../constants/designTokens";
+import { COLORS } from "../constants/designTokens";
+import { inventoryApi } from "../services/inventory";
+import { useCart } from "../store/CartContext";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -34,57 +37,106 @@ const itemVariants = {
   },
 };
 
+const getStockTone = (product) => {
+  if (product.stock === 0) {
+    return "bg-red-50 text-red-700";
+  }
+
+  if (product.stock <= product.lowStockThreshold) {
+    return "bg-amber-50 text-amber-700";
+  }
+
+  return "bg-emerald-50 text-emerald-700";
+};
+
 export const Home = () => {
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [productsError, setProductsError] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const { addToCart, syncProducts } = useCart();
+
+  useEffect(() => {
+    let ignore = false;
+
+    const fetchFeaturedProducts = async () => {
+      try {
+        setLoadingProducts(true);
+        setProductsError("");
+
+        const data = await inventoryApi.getProducts({
+          page: 1,
+          limit: 4,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        });
+
+        if (ignore) {
+          return;
+        }
+
+        setFeaturedProducts(data.products || []);
+        setTotalProducts(data.pagination?.total || 0);
+        syncProducts(data.products || []);
+      } catch (error) {
+        if (!ignore) {
+          setProductsError(
+            error?.response?.data?.message || "Failed to load featured products",
+          );
+        }
+      } finally {
+        if (!ignore) {
+          setLoadingProducts(false);
+        }
+      }
+    };
+
+    fetchFeaturedProducts();
+
+    return () => {
+      ignore = true;
+    };
+  }, [syncProducts]);
+
   const features = [
     {
       title: "Fast Delivery",
       description: "Get your order within 24 hours",
       icon: FiTruck,
-      color: "from-blue-500 to-blue-600",
     },
     {
       title: "Secure Payment",
       description: "Safe and encrypted transactions",
       icon: FiLock,
-      color: "from-green-500 to-green-600",
     },
     {
       title: "100% Authentic",
       description: "Genuine products guaranteed",
       icon: FiCheckCircle,
-      color: "from-purple-500 to-purple-600",
     },
   ];
 
-  const featuredProducts = [
-    {
-      id: 1,
-      name: "Premium Phone X",
-      price: 1299,
-      rating: 4.8,
-      reviews: 234,
-    },
-    { id: 2, name: "Ultra Phone Pro", price: 1599, rating: 4.9, reviews: 342 },
-    { id: 3, name: "Smart Phone Plus", price: 899, rating: 4.7, reviews: 156 },
-    { id: 4, name: "Elite Device", price: 999, rating: 4.6, reviews: 189 },
+  const stats = [
+    { number: `${totalProducts || 0}+`, label: "Live Products" },
+    { number: featuredProducts.filter((product) => product.stock > 0).length, label: "Ready To Ship" },
+    { number: "24/7", label: "Support" },
   ];
 
   return (
     <div
-      className="min-h-screen pt-20 pb-24 md:pb-8"
+      className="min-h-screen pb-24 pt-20 md:pb-8"
       style={{ background: COLORS.neutral.bg }}
     >
-      {/* Hero Section */}
       <motion.section
-        className="relative max-w-7xl mx-auto px-4 py-16 md:py-24 overflow-hidden"
+        className="relative mx-auto max-w-7xl overflow-hidden px-4 py-16 md:py-24"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        {/* Decorative background elements */}
         <div className="absolute inset-0 overflow-hidden">
           <motion.div
-            className="absolute -top-40 -right-40 w-80 h-80 rounded-full opacity-10"
+            className="absolute -right-40 -top-40 h-80 w-80 rounded-full opacity-10"
             style={{
               background: `radial-gradient(circle, ${COLORS.primary.main} 0%, transparent 70%)`,
             }}
@@ -95,7 +147,7 @@ export const Home = () => {
             transition={{ duration: 8, repeat: Infinity }}
           />
           <motion.div
-            className="absolute -bottom-20 -left-20 w-96 h-96 rounded-full opacity-5"
+            className="absolute -bottom-20 -left-20 h-96 w-96 rounded-full opacity-5"
             style={{
               background: `radial-gradient(circle, ${COLORS.secondary.main} 0%, transparent 70%)`,
             }}
@@ -108,29 +160,26 @@ export const Home = () => {
         </div>
 
         <div className="relative z-10">
-          {/* Main Headline */}
           <motion.div variants={itemVariants} className="mb-8 text-center">
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6">
-              <span className="block text-neutral-900">Discover the Latest</span>
-              <span
-                className="block bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent mt-2"
-              >
-                Mobile Technology
+            <h1 className="mb-6 text-5xl font-bold md:text-6xl lg:text-7xl">
+              <span className="block text-neutral-900">Discover Live</span>
+              <span className="mt-2 block bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+                Mobile Inventory
               </span>
             </h1>
-            <p className="text-lg md:text-xl text-neutral-600 max-w-2xl mx-auto mb-8 leading-relaxed">
-              Experience cutting-edge smartphones and accessories with incredible deals. Shop from the world's most trusted brands.
+            <p className="mx-auto mb-8 max-w-2xl text-lg leading-relaxed text-neutral-600 md:text-xl">
+              The storefront now pulls active products directly from the backend, so
+              customers always see the latest stock and pricing.
             </p>
           </motion.div>
 
-          {/* CTA Buttons */}
           <motion.div
             variants={itemVariants}
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16"
+            className="mb-16 flex flex-col items-center justify-center gap-4 sm:flex-row"
           >
             <Link
               to="/shop"
-              className="group relative px-10 py-4 rounded-2xl font-bold text-lg text-white overflow-hidden transition-all duration-300"
+              className="group relative overflow-hidden rounded-2xl px-10 py-4 text-lg font-bold text-white transition-all duration-300"
               style={{
                 background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.dark} 100%)`,
               }}
@@ -144,13 +193,13 @@ export const Home = () => {
               />
               <div className="relative flex items-center gap-2">
                 Start Shopping
-                <FiArrowRight className="group-hover:translate-x-1 transition-transform duration-300" />
+                <FiArrowRight className="transition-transform duration-300 group-hover:translate-x-1" />
               </div>
             </Link>
 
             <a
               href="#featured"
-              className="px-10 py-4 rounded-2xl font-bold text-lg transition-all duration-300 border-2"
+              className="rounded-2xl border-2 px-10 py-4 text-lg font-bold transition-all duration-300"
               style={{
                 borderColor: COLORS.primary.main,
                 color: COLORS.primary.main,
@@ -161,18 +210,13 @@ export const Home = () => {
             </a>
           </motion.div>
 
-          {/* Stats */}
           <motion.div
             variants={itemVariants}
-            className="grid grid-cols-3 gap-4 md:gap-8 max-w-2xl mx-auto"
+            className="mx-auto grid max-w-2xl grid-cols-3 gap-4 md:gap-8"
           >
-            {[
-              { number: "50K+", label: "Happy Customers" },
-              { number: "1000+", label: "Products" },
-              { number: "24/7", label: "Support" },
-            ].map((stat, idx) => (
-              <div key={idx} className="text-center">
-                <div className="text-2xl md:text-3xl font-bold text-neutral-900">
+            {stats.map((stat) => (
+              <div key={stat.label} className="text-center">
+                <div className="text-2xl font-bold text-neutral-900 md:text-3xl">
                   {stat.number}
                 </div>
                 <div className="text-sm text-neutral-600">{stat.label}</div>
@@ -182,39 +226,36 @@ export const Home = () => {
         </div>
       </motion.section>
 
-      {/* Feature Cards */}
       <motion.section
-        className="max-w-7xl mx-auto px-4 py-16 md:py-24"
+        className="mx-auto max-w-7xl px-4 py-16 md:py-24"
         variants={containerVariants}
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, amount: 0.3 }}
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-          {features.map((feature, idx) => {
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-8">
+          {features.map((feature) => {
             const FeatureIcon = feature.icon;
             return (
               <motion.div
-                key={idx}
+                key={feature.title}
                 variants={itemVariants}
                 whileHover={{ y: -8, transition: { duration: 0.2 } }}
-                className="group relative p-8 rounded-2xl bg-white border border-neutral-100 overflow-hidden cursor-pointer transition-all duration-300"
+                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-neutral-100 bg-white p-8 transition-all duration-300"
                 style={{
                   boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
                 }}
               >
-                {/* Gradient background on hover */}
                 <motion.div
                   className="absolute inset-0 opacity-0 group-hover:opacity-100"
                   style={{
-                    background: `linear-gradient(135deg, rgba(40, 92, 204, 0.05) 0%, rgba(255, 242, 189, 0.05) 100%)`,
+                    background: "linear-gradient(135deg, rgba(40, 92, 204, 0.05) 0%, rgba(255, 242, 189, 0.05) 100%)",
                   }}
                   transition={{ duration: 0.3 }}
                 />
 
-                {/* Icon container */}
                 <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 text-white text-2xl transition-transform duration-300 group-hover:scale-110"
+                  className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl text-2xl text-white transition-transform duration-300 group-hover:scale-110"
                   style={{
                     background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.dark} 100%)`,
                   }}
@@ -222,33 +263,20 @@ export const Home = () => {
                   <FeatureIcon />
                 </div>
 
-                {/* Content */}
                 <div className="relative z-10">
-                  <h3 className="text-xl font-bold text-neutral-900 mb-2">
+                  <h3 className="mb-2 text-xl font-bold text-neutral-900">
                     {feature.title}
                   </h3>
-                  <p className="text-neutral-600 leading-relaxed">
+                  <p className="leading-relaxed text-neutral-600">
                     {feature.description}
                   </p>
                 </div>
-
-                {/* Accent line */}
-                <motion.div
-                  className="absolute bottom-0 left-0 h-1"
-                  style={{
-                    background: `linear-gradient(90deg, ${COLORS.primary.main} 0%, transparent 100%)`,
-                  }}
-                  initial={{ width: 0 }}
-                  whileHover={{ width: "100%" }}
-                  transition={{ duration: 0.3 }}
-                />
               </motion.div>
             );
           })}
         </div>
       </motion.section>
 
-      {/* Featured Products Section */}
       <section
         className="py-16 md:py-24"
         style={{
@@ -257,129 +285,174 @@ export const Home = () => {
         id="featured"
       >
         <motion.div
-          className="max-w-7xl mx-auto px-4"
+          className="mx-auto max-w-7xl px-4"
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.3 }}
         >
-          {/* Section Title */}
-          <motion.div variants={itemVariants} className="text-center mb-16">
+          <motion.div variants={itemVariants} className="mb-16 text-center">
             <div
-              className="inline-block px-4 py-2 rounded-full mb-4 font-semibold text-sm"
+              className="mb-4 inline-block rounded-full px-4 py-2 text-sm font-semibold"
               style={{
                 background: `${COLORS.primary.main}20`,
                 color: COLORS.primary.main,
               }}
             >
-              Premium Selection
+              Live Featured Products
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-neutral-900 mb-4">
-              Featured Products
+            <h2 className="mb-4 text-4xl font-bold text-neutral-900 md:text-5xl">
+              Newest Active Inventory
             </h2>
-            <p className="text-neutral-600 text-lg max-w-2xl mx-auto">
-              Handpicked selection of our most popular and highly-rated devices
+            <p className="mx-auto max-w-2xl text-lg text-neutral-600">
+              This section now reflects the latest active products added from the admin panel.
             </p>
           </motion.div>
 
-          {/* Product Grid */}
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
-            variants={containerVariants}
-          >
-            {featuredProducts.map((product, idx) => (
-              <motion.div
-                key={product.id}
-                variants={itemVariants}
-                whileHover={{ y: -8 }}
-                className="group relative bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 border border-neutral-100"
-                style={{
-                  boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-                }}
-              >
-                {/* Product Image Area */}
+          {feedback && (
+            <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+              {feedback}
+            </div>
+          )}
+
+          {productsError && (
+            <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              {productsError}
+            </div>
+          )}
+
+          {loadingProducts ? (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, index) => (
                 <div
-                  className="h-48 flex items-center justify-center relative overflow-hidden"
+                  key={index}
+                  className="h-[340px] animate-pulse rounded-2xl border border-neutral-100 bg-white"
+                />
+              ))}
+            </div>
+          ) : featuredProducts.length > 0 ? (
+            <motion.div
+              className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4"
+              variants={containerVariants}
+            >
+              {featuredProducts.map((product) => (
+                <motion.div
+                  key={product._id}
+                  variants={itemVariants}
+                  whileHover={{ y: -8 }}
+                  className="group relative overflow-hidden rounded-2xl border border-neutral-100 bg-white transition-all duration-300"
                   style={{
-                    background: `linear-gradient(135deg, ${COLORS.secondary.main}80 0%, ${COLORS.primary.main}20 100%)`,
+                    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
                   }}
                 >
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                    className="text-6xl opacity-80 group-hover:opacity-100 transition-opacity duration-300"
-                  >
-                    <FiSmartphone />
-                  </motion.div>
-                </div>
-
-                {/* Product Info */}
-                <div className="p-6 relative z-10">
-                  <h3 className="font-bold text-lg text-neutral-900 mb-2 group-hover:text-blue-600 transition-colors duration-300">
-                    {product.name}
-                  </h3>
-
-                  {/* Rating */}
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="flex items-center gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <FiStar
-                          key={i}
-                          size={16}
-                          style={{
-                            fill: i < Math.floor(product.rating)
-                              ? COLORS.primary.main
-                              : "transparent",
-                            color: COLORS.primary.main,
-                          }}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-sm text-neutral-600">
-                      {product.rating} ({product.reviews})
-                    </span>
-                  </div>
-
-                  {/* Price and Button */}
-                  <div className="flex items-center justify-between">
-                    <span
-                      className="text-2xl font-bold"
-                      style={{ color: COLORS.primary.main }}
-                    >
-                      ${product.price}
-                    </span>
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold transition-all duration-300"
+                  <Link to={`/product/${product._id}`} className="block">
+                    <div
+                      className="relative flex h-48 items-center justify-center overflow-hidden"
                       style={{
-                        background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.dark} 100%)`,
+                        background: `linear-gradient(135deg, ${COLORS.secondary.main}80 0%, ${COLORS.primary.main}20 100%)`,
                       }}
                     >
-                      <FiArrowRight />
-                    </motion.button>
+                      {product.images?.[0] ? (
+                        <img
+                          src={product.images[0]}
+                          alt={product.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                          className="text-6xl opacity-80 transition-opacity duration-300 group-hover:opacity-100"
+                        >
+                          <FiSmartphone />
+                        </motion.div>
+                      )}
+
+                      <span
+                        className={`absolute left-4 top-4 rounded-full px-3 py-1 text-xs font-semibold ${getStockTone(product)}`}
+                      >
+                        {product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}
+                      </span>
+                    </div>
+                  </Link>
+
+                  <div className="relative z-10 p-6">
+                    <div className="mb-2 text-xs font-semibold" style={{ color: COLORS.primary.main }}>
+                      {product.brand}
+                    </div>
+
+                    <Link
+                      to={`/product/${product._id}`}
+                      className="mb-3 block text-lg font-bold text-neutral-900 transition-colors duration-300 group-hover:text-blue-600"
+                    >
+                      {product.name}
+                    </Link>
+
+                    <div className="mb-4 flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        {[...Array(5)].map((_, i) => (
+                          <FiStar
+                            key={i}
+                            size={14}
+                            style={{
+                              fill: i < 4 ? COLORS.primary.main : "transparent",
+                              color: COLORS.primary.main,
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm text-neutral-600">{product.condition}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3">
+                      <span
+                        className="text-2xl font-bold"
+                        style={{ color: COLORS.primary.main }}
+                      >
+                        ${product.price}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={product.stock === 0}
+                        onClick={() => {
+                          const result = addToCart(product, 1);
+                          setFeedback(result.message);
+                        }}
+                        className={`flex h-10 w-10 items-center justify-center rounded-full font-bold text-white transition-all duration-300 ${
+                          product.stock === 0
+                            ? "cursor-not-allowed bg-slate-300"
+                            : ""
+                        }`}
+                        style={
+                          product.stock === 0
+                            ? undefined
+                            : {
+                                background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.dark} 100%)`,
+                              }
+                        }
+                      >
+                        <FiShoppingCart size={18} />
+                      </button>
+                    </div>
                   </div>
-                </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-neutral-300 bg-white px-6 py-16 text-center">
+              <h3 className="text-2xl font-bold text-neutral-900">No active products yet</h3>
+              <p className="mt-3 text-neutral-600">
+                Add products from the admin inventory page and they will appear here automatically.
+              </p>
+            </div>
+          )}
 
-                {/* Hover overlay */}
-                <motion.div
-                  className="absolute inset-0 bg-black opacity-0 group-hover:opacity-5 transition-opacity duration-300"
-                />
-              </motion.div>
-            ))}
-          </motion.div>
-
-          {/* View All Button */}
-          <motion.div
-            variants={itemVariants}
-            className="flex justify-center mt-16"
-          >
+          <motion.div variants={itemVariants} className="mt-16 flex justify-center">
             <Link
               to="/shop"
-              className="px-10 py-4 rounded-2xl font-bold text-lg transition-all duration-300"
+              className="rounded-2xl px-10 py-4 text-lg font-bold text-white transition-all duration-300"
               style={{
                 background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.dark} 100%)`,
-                color: "white",
               }}
             >
               View All Products
@@ -388,22 +461,20 @@ export const Home = () => {
         </motion.div>
       </section>
 
-      {/* Newsletter Section */}
       <motion.section
-        className="max-w-7xl mx-auto px-4 py-16 md:py-24"
+        className="mx-auto max-w-7xl px-4 py-16 md:py-24"
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
       >
         <motion.div
-          className="relative rounded-3xl p-12 md:p-16 text-center overflow-hidden"
+          className="relative overflow-hidden rounded-3xl p-12 text-center md:p-16"
           style={{
             background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.dark} 100%)`,
           }}
         >
-          {/* Decorative elements */}
           <motion.div
-            className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-10"
+            className="absolute right-0 top-0 h-96 w-96 rounded-full opacity-10"
             style={{
               background: "radial-gradient(circle, white 0%, transparent 70%)",
             }}
@@ -412,21 +483,21 @@ export const Home = () => {
           />
 
           <div className="relative z-10">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h2 className="mb-4 text-3xl font-bold text-white md:text-4xl">
               Subscribe to Our Newsletter
             </h2>
-            <p className="text-blue-100 mb-8 text-lg max-w-2xl mx-auto">
-              Get exclusive deals, product launches, and tech tips delivered straight to your inbox
+            <p className="mx-auto mb-8 max-w-2xl text-lg text-blue-100">
+              Get exclusive deals, product launches, and tech tips delivered straight to your inbox.
             </p>
 
             <motion.form
-              className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
-              onSubmit={(e) => e.preventDefault()}
+              className="mx-auto flex max-w-md flex-col gap-3 sm:flex-row"
+              onSubmit={(event) => event.preventDefault()}
             >
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="flex-1 px-6 py-4 rounded-xl border-0 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all duration-300"
+                className="flex-1 rounded-xl border-0 px-6 py-4 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-300"
                 style={{
                   backgroundColor: "white",
                 }}
@@ -434,7 +505,7 @@ export const Home = () => {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="px-8 py-4 rounded-xl font-bold text-primary transition-all duration-300"
+                className="rounded-xl px-8 py-4 font-bold transition-all duration-300"
                 style={{
                   background: COLORS.secondary.main,
                   color: COLORS.primary.main,
