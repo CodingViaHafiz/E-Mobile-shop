@@ -8,21 +8,21 @@ export const AdminPageHeader = ({
   meta = [],
 }) => {
   return (
-    <div className="admin-section relative overflow-hidden">
+    <div className="admin-section relative overflow-hidden !p-5 sm:!p-6">
       <div className="absolute inset-y-0 right-0 hidden w-1/3 bg-gradient-to-l from-blue-100/60 via-transparent to-transparent lg:block" />
 
-      <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+      <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="admin-chip">{eyebrow}</p>
-          <h1 className="admin-title mt-5">{title}</h1>
+          <h1 className="admin-title mt-3">{title}</h1>
           {description && <p className="admin-subtitle">{description}</p>}
 
           {meta.length > 0 && (
-            <div className="mt-5 flex flex-wrap gap-3">
+            <div className="mt-4 flex flex-wrap gap-2">
               {meta.map((item) => (
                 <span
                   key={item}
-                  className="inline-flex items-center rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-white/90"
+                  className="inline-flex items-center rounded-full bg-slate-950 px-2.5 py-1 text-[11px] font-semibold text-white/90"
                 >
                   {item}
                 </span>
@@ -31,7 +31,7 @@ export const AdminPageHeader = ({
           )}
         </div>
 
-        {actions && <div className="flex flex-wrap gap-3">{actions}</div>}
+        {actions && <div className="grid w-full gap-3 sm:flex sm:flex-wrap lg:w-auto">{actions}</div>}
       </div>
     </div>
   );

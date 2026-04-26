@@ -62,10 +62,56 @@ const productSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
-    ptaTax: {
+    ptaStatus: {
+      type: String,
+      enum: ["yes", "no"],
+      default: "no",
+    },
+    reviews: {
+      type: [
+        new mongoose.Schema(
+          {
+            user: {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: "User",
+              required: true,
+            },
+            name: {
+              type: String,
+              required: true,
+              trim: true,
+            },
+            rating: {
+              type: Number,
+              required: true,
+              min: 1,
+              max: 5,
+            },
+            comment: {
+              type: String,
+              required: true,
+              trim: true,
+            },
+            createdAt: {
+              type: Date,
+              default: Date.now,
+            },
+          },
+          { _id: true },
+        ),
+      ],
+      default: [],
+    },
+    reviewCount: {
       type: Number,
       default: 0,
-      min: [0, "PTA tax cannot be negative"],
+      min: 0,
+    },
+    averageRating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
     },
     images: {
       type: [String],

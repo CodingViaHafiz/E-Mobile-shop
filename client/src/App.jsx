@@ -17,6 +17,7 @@ import { InventoryPage } from './pages/AdminInventory';
 import { AdminUsers } from './pages/AdminUsers';
 import { AdminAnalytics } from './pages/AdminAnalytics';
 import { AdminSettingsPage } from './pages/AdminSettingsPage';
+import { AdminOrders } from './pages/AdminOrders';
 import { COLORS } from './constants/designTokens';
 
 function AppRoutes() {
@@ -70,7 +71,7 @@ function AppRoutes() {
           path="/settings"
           element={
             <ProtectedRoute>
-              <Settings />
+              {/* <Settings /> */}
             </ProtectedRoute>
           }
         />
@@ -95,6 +96,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
               <InventoryPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/orders"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminOrders />
             </ProtectedRoute>
           }
         />

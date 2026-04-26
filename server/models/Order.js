@@ -28,10 +28,10 @@ const orderItemSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
-    ptaTax: {
-      type: Number,
-      default: 0,
-      min: 0,
+    ptaStatus: {
+      type: String,
+      enum: ["yes", "no"],
+      default: "no",
     },
     quantity: {
       type: Number,
@@ -65,20 +65,86 @@ const orderSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
-    totalPtaTax: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
     grandTotal: {
       type: Number,
       required: true,
       min: 0,
     },
+    customer: {
+      fullName: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      email: {
+        type: String,
+        required: true,
+        trim: true,
+        lowercase: true,
+      },
+      phone: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+    },
+    shippingAddress: {
+      addressLine1: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      addressLine2: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      city: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      state: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      postalCode: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      country: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["cash_on_delivery", "bank_transfer", "easypaisa", "jazzcash"],
+      required: true,
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "paid", "failed"],
+      default: "pending",
+      index: true,
+    },
+    notes: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    trackingNumber: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     status: {
       type: String,
-      enum: ["placed", "fulfilled", "cancelled"],
-      default: "placed",
+      enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
+      default: "pending",
       index: true,
     },
     placedBy: {
@@ -93,6 +159,7 @@ const orderSchema = new mongoose.Schema(
 );
 
 orderSchema.index({ createdAt: -1 });
+orderSchema.index({ status: 1, createdAt: -1 });
 
 const Order = mongoose.model("Order", orderSchema);
 

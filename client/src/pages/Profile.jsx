@@ -120,7 +120,7 @@ export const Profile = () => {
 
               {/* Quick Actions */}
               <div className="flex gap-3 md:flex-col">
-                <motion.button
+                {/* <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="px-6 py-3 rounded-xl font-semibold text-white flex items-center gap-2 transition-all duration-300"
@@ -130,7 +130,7 @@ export const Profile = () => {
                 >
                   <FiEdit2 size={18} />
                   Edit
-                </motion.button>
+                </motion.button> */}
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}

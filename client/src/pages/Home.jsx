@@ -7,12 +7,12 @@ import {
   FiLock,
   FiShoppingCart,
   FiSmartphone,
-  FiStar,
   FiTruck,
 } from "react-icons/fi";
 import { COLORS } from "../constants/designTokens";
 import { inventoryApi } from "../services/inventory";
 import { useCart } from "../store/CartContext";
+import { formatPKR } from "../utils/currency";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -389,19 +389,14 @@ export const Home = () => {
                     </Link>
 
                     <div className="mb-4 flex items-center gap-2">
-                      <div className="flex items-center gap-1">
-                        {[...Array(5)].map((_, i) => (
-                          <FiStar
-                            key={i}
-                            size={14}
-                            style={{
-                              fill: i < 4 ? COLORS.primary.main : "transparent",
-                              color: COLORS.primary.main,
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-sm text-neutral-600">{product.condition}</span>
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">
+                        {product.condition}
+                      </span>
+                      <span
+                        className={`rounded-full px-3 py-1 text-sm font-semibold ${product.ptaStatus === "yes" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-700"}`}
+                      >
+                        PTA {product.ptaStatus === "yes" ? "Yes" : "No"}
+                      </span>
                     </div>
 
                     <div className="flex items-center justify-between gap-3">
@@ -409,7 +404,7 @@ export const Home = () => {
                         className="text-2xl font-bold"
                         style={{ color: COLORS.primary.main }}
                       >
-                        ${product.price}
+                        {formatPKR(product.price)}
                       </span>
                       <button
                         type="button"
@@ -418,17 +413,16 @@ export const Home = () => {
                           const result = addToCart(product, 1);
                           setFeedback(result.message);
                         }}
-                        className={`flex h-10 w-10 items-center justify-center rounded-full font-bold text-white transition-all duration-300 ${
-                          product.stock === 0
+                        className={`flex h-10 w-10 items-center justify-center rounded-full font-bold text-white transition-all duration-300 ${product.stock === 0
                             ? "cursor-not-allowed bg-slate-300"
                             : ""
-                        }`}
+                          }`}
                         style={
                           product.stock === 0
                             ? undefined
                             : {
-                                background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.dark} 100%)`,
-                              }
+                              background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.dark} 100%)`,
+                            }
                         }
                       >
                         <FiShoppingCart size={18} />

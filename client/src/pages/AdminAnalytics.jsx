@@ -12,6 +12,7 @@ import { AdminLayout } from "../components/AdminLayout";
 import { AdminPageHeader } from "../components/AdminPageHeader";
 import { AdminStatCard } from "../components/AdminStatCard";
 import { inventoryApi } from "../services/inventory";
+import { formatPKR } from "../utils/currency";
 
 const sectionMotion = {
   initial: { opacity: 0, y: 18 },
@@ -87,7 +88,7 @@ export const AdminAnalytics = () => {
   const statCards = [
     {
       label: "Stock value",
-      value: `$${(summary.stats.stockValue || 0).toFixed(0)}`,
+      value: formatPKR(summary.stats.stockValue || 0, { maximumFractionDigits: 0 }),
       icon: FiTrendingUp,
       accent: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
       hint: "Current inventory value based on stock and price",
@@ -205,7 +206,7 @@ export const AdminAnalytics = () => {
                     </div>
                     <div className="mt-3 flex items-center justify-between text-sm text-slate-500">
                       <span>Stock left: {product.stock}</span>
-                      <span>${product.price.toFixed(2)}</span>
+                      <span>{formatPKR(product.price)}</span>
                     </div>
                   </div>
                 ))
@@ -330,7 +331,7 @@ export const AdminAnalytics = () => {
                     <div className="mt-3 flex items-center justify-between text-sm text-slate-500">
                       <span>{new Date(order.createdAt).toLocaleString()}</span>
                       <span className="font-semibold text-slate-900">
-                        ${order.grandTotal.toFixed(2)}
+                        {formatPKR(order.grandTotal)}
                       </span>
                     </div>
                   </div>

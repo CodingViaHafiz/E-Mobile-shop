@@ -26,7 +26,7 @@ const normalizeCartProduct = (product, quantity = 1) => ({
   brand: product.brand,
   model: product.model,
   price: product.price,
-  ptaTax: product.ptaTax,
+  ptaStatus: product.ptaStatus === "yes" ? "yes" : "no",
   image: product.images?.[0] || "",
   stock: product.stock,
   status: product.status,
@@ -77,7 +77,7 @@ export const CartProvider = ({ children }) => {
               quantity: nextQuantity,
               stock: product.stock,
               price: product.price,
-              ptaTax: product.ptaTax,
+              ptaStatus: product.ptaStatus === "yes" ? "yes" : "no",
               image: product.images?.[0] || item.image,
             }
           : item,
@@ -130,7 +130,7 @@ export const CartProvider = ({ children }) => {
             ...item,
             stock: product.stock,
             price: product.price,
-            ptaTax: product.ptaTax,
+            ptaStatus: product.ptaStatus === "yes" ? "yes" : "no",
             image: product.images?.[0] || item.image,
             status: product.status,
             quantity: nextQuantity,
@@ -144,7 +144,7 @@ export const CartProvider = ({ children }) => {
     products.forEach(syncProduct);
   }, [syncProduct]);
 
-  const checkout = useCallback(async () => {
+  const checkout = useCallback(async (orderDetails) => {
     if (items.length === 0) {
       return {
         success: false,
@@ -159,6 +159,7 @@ export const CartProvider = ({ children }) => {
           productId: item.productId,
           quantity: item.quantity,
         })),
+        ...orderDetails,
       });
 
       clearCart();
@@ -180,16 +181,11 @@ export const CartProvider = ({ children }) => {
 
   const totals = useMemo(() => {
     const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const totalPtaTax = items.reduce(
-      (sum, item) => sum + item.ptaTax * item.quantity,
-      0,
-    );
 
     return {
       itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
       subtotal,
-      totalPtaTax,
-      grandTotal: subtotal + totalPtaTax,
+      grandTotal: subtotal,
     };
   }, [items]);
 

@@ -46,6 +46,11 @@ const normalizeStatus = (status) => {
   return normalized === "inactive" ? "inactive" : "active";
 };
 
+const normalizePtaStatus = (ptaStatus) => {
+  const normalized = toTrimmedString(ptaStatus, "no").toLowerCase();
+  return normalized === "yes" ? "yes" : "no";
+};
+
 const normalizeCondition = (condition) => {
   const normalized = toTrimmedString(condition, "new").toLowerCase();
 
@@ -74,7 +79,7 @@ const normalizeProductInput = (rawProduct = {}, options = {}) => {
     batteryHealth:
       condition === "used" || condition === "refurbished" ? batteryHealth : null,
     description: toTrimmedString(rawProduct.description),
-    ptaTax: toNumberWithFallback(rawProduct.ptaTax, 0),
+    ptaStatus: normalizePtaStatus(rawProduct.ptaStatus),
     images: normalizeImages(rawProduct.images),
     status: normalizeStatus(rawProduct.status),
     lowStockThreshold: Math.max(
@@ -360,9 +365,100 @@ export const getProductById = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Product not found");
   }
 
+  let reviewPermissions = {
+    canReview: false,
+    hasPurchased: false,
+    hasReviewed: false,
+  };
+
+  if (req.user) {
+    const hasPurchased = Boolean(
+      await Order.exists({
+        placedBy: req.user._id,
+        status: { $in: ["pending", "processing", "shipped", "delivered"] },
+        "items.product": product._id,
+      }),
+    );
+    const hasReviewed = product.reviews.some(
+      (review) => review.user.toString() === req.user._id.toString(),
+    );
+
+    reviewPermissions = {
+      canReview: hasPurchased && !hasReviewed,
+      hasPurchased,
+      hasReviewed,
+    };
+  }
+
   res.status(200).json({
     success: true,
     product,
+    reviewPermissions,
+  });
+});
+
+export const createProductReview = asyncHandler(async (req, res) => {
+  const product = await Product.findById(req.params.id);
+
+  if (!product || product.status !== "active") {
+    throw new ApiError(404, "Product not found");
+  }
+
+  const hasPurchased = Boolean(
+    await Order.exists({
+      placedBy: req.user._id,
+      status: { $in: ["pending", "processing", "shipped", "delivered"] },
+      "items.product": product._id,
+    }),
+  );
+
+  if (!hasPurchased) {
+    throw new ApiError(403, "Only customers who purchased this product can review it");
+  }
+
+  const hasReviewed = product.reviews.some(
+    (review) => review.user.toString() === req.user._id.toString(),
+  );
+
+  if (hasReviewed) {
+    throw new ApiError(400, "You have already reviewed this product");
+  }
+
+  const rating = Math.min(5, Math.max(1, Number(req.body.rating)));
+  const comment = toTrimmedString(req.body.comment);
+
+  if (!comment) {
+    throw new ApiError(400, "Review comment is required");
+  }
+
+  product.reviews.unshift({
+    user: req.user._id,
+    name: req.user.name,
+    rating,
+    comment,
+  });
+
+  product.reviewCount = product.reviews.length;
+  product.averageRating = product.reviews.length
+    ? Number(
+        (
+          product.reviews.reduce((sum, review) => sum + review.rating, 0) /
+          product.reviews.length
+        ).toFixed(1),
+      )
+    : 0;
+
+  await product.save();
+
+  res.status(201).json({
+    success: true,
+    message: "Review submitted successfully",
+    product,
+    reviewPermissions: {
+      canReview: false,
+      hasPurchased: true,
+      hasReviewed: true,
+    },
   });
 });
 

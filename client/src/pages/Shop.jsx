@@ -14,6 +14,7 @@ import { COLORS } from "../constants/designTokens";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { inventoryApi } from "../services/inventory";
 import { useCart } from "../store/CartContext";
+import { formatPKR } from "../utils/currency";
 
 const resolveSort = (sortBy) => {
   switch (sortBy) {
@@ -328,6 +329,15 @@ export const Shop = () => {
                           <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
                             {product.category}
                           </span>
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                              product.ptaStatus === "yes"
+                                ? "bg-emerald-50 text-emerald-700"
+                                : "bg-slate-100 text-slate-700"
+                            }`}
+                          >
+                            PTA {product.ptaStatus === "yes" ? "Yes" : "No"}
+                          </span>
                         </div>
 
                         <div>
@@ -352,13 +362,13 @@ export const Shop = () => {
                                 Price
                               </p>
                               <p className="mt-2 text-3xl font-black text-slate-950">
-                                ${product.price.toFixed(2)}
+                                {formatPKR(product.price)}
                               </p>
                             </div>
                             <div className="text-right text-sm text-slate-500">
-                              <p>PTA tax</p>
-                              <p className="mt-1 font-semibold text-slate-700">
-                                ${product.ptaTax.toFixed(2)}
+                              <p>PTA</p>
+                              <p className="mt-1 font-semibold uppercase text-slate-700">
+                                {product.ptaStatus === "yes" ? "Approved" : "No"}
                               </p>
                             </div>
                           </div>

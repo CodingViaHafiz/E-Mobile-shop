@@ -12,6 +12,7 @@ import {
 import { COLORS } from "../constants/designTokens";
 import { inventoryApi } from "../services/inventory";
 import { useCart } from "../store/CartContext";
+import { formatPKR } from "../utils/currency";
 
 const getBadgeTone = (product) => {
   if (!product || product.stock === 0) {
@@ -90,7 +91,7 @@ export const ProductDetail = () => {
       { label: "Condition", value: product.condition },
       { label: "Status", value: product.status },
       { label: "Stock", value: `${product.stock} units` },
-      { label: "PTA tax", value: `$${product.ptaTax.toFixed(2)}` },
+      { label: "PTA", value: product.ptaStatus === "yes" ? "Approved" : "No" },
       ...(product.batteryHealth !== null && product.batteryHealth !== undefined
         ? [{ label: "Battery health", value: `${product.batteryHealth}%` }]
         : []),
@@ -227,12 +228,12 @@ export const ProductDetail = () => {
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-100">
                       Price
                     </p>
-                    <p className="mt-2 text-4xl font-black">${product.price.toFixed(2)}</p>
+                    <p className="mt-2 text-4xl font-black">{formatPKR(product.price)}</p>
                   </div>
                   <div className="text-right text-sm text-slate-300">
-                    <p>PTA tax</p>
+                    <p>PTA</p>
                     <p className="mt-1 font-semibold text-white">
-                      ${product.ptaTax.toFixed(2)}
+                      {product.ptaStatus === "yes" ? "Approved" : "No"}
                     </p>
                   </div>
                 </div>

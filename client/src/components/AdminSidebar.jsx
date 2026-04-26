@@ -5,6 +5,7 @@ import {
   FiHome,
   FiLogOut,
   FiMenu,
+  FiShoppingBag,
   FiSettings,
   FiTrendingUp,
   FiUsers,
@@ -21,6 +22,7 @@ export const AdminSidebar = () => {
   const navItems = [
     { label: "Dashboard", icon: FiHome, path: "/admin" },
     { label: "Inventory", icon: FiBox, path: "/admin/inventory" },
+    { label: "Orders", icon: FiShoppingBag, path: "/admin/orders" },
     { label: "Users", icon: FiUsers, path: "/admin/users" },
     { label: "Analytics", icon: FiTrendingUp, path: "/admin/analytics" },
     { label: "Settings", icon: FiSettings, path: "/admin/settings" },

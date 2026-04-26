@@ -19,6 +19,7 @@ import { AdminPageHeader } from "../components/AdminPageHeader";
 import { AdminStatCard } from "../components/AdminStatCard";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { inventoryApi } from "../services/inventory";
+import { formatPKR } from "../utils/currency";
 
 const sectionMotion = {
   initial: { opacity: 0, y: 18 },
@@ -47,8 +48,8 @@ const createProductFormState = (product = null) => ({
       ? ""
       : product.batteryHealth,
   description: product?.description || "",
-  ptaTax: product?.ptaTax ?? 0,
-  imagesText: Array.isArray(product?.images) ? product.images.join("\n") : "",
+  ptaStatus: product?.ptaStatus || "no",
+  images: Array.isArray(product?.images) ? product.images : [],
   status: product?.status || "active",
   lowStockThreshold: product?.lowStockThreshold ?? 5,
 });
@@ -85,11 +86,8 @@ const serializeProductForm = (formState) => ({
         : parseNumber(formState.batteryHealth, 0)
       : null,
   description: formState.description.trim(),
-  ptaTax: parseNumber(formState.ptaTax, 0),
-  images: formState.imagesText
-    .split(/\r?\n|,/)
-    .map((image) => image.trim())
-    .filter(Boolean),
+  ptaStatus: formState.ptaStatus === "yes" ? "yes" : "no",
+  images: Array.isArray(formState.images) ? formState.images.filter(Boolean) : [],
   status: formState.status,
   lowStockThreshold: parseNumber(formState.lowStockThreshold, 5),
 });
@@ -130,6 +128,19 @@ const stockTone = (product) => {
 
   return "bg-emerald-50 text-emerald-700";
 };
+
+const ptaTone = (ptaStatus) =>
+  ptaStatus === "yes"
+    ? "bg-emerald-50 text-emerald-700"
+    : "bg-slate-100 text-slate-700";
+
+const readFileAsDataUrl = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+    reader.onerror = () => reject(new Error(`Failed to read file: ${file.name}`));
+    reader.readAsDataURL(file);
+  });
 
 const ModalShell = ({ children, onClose, title, subtitle }) => (
   <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
@@ -207,8 +218,8 @@ const ProductModal = ({
             placeholder="mobile, accessories, tablet..."
           />
         </label>
-        <label>
-          <span className="mb-2 block text-sm font-semibold text-slate-600">Price</span>
+          <label>
+            <span className="mb-2 block text-sm font-semibold text-slate-600">Price (PKR)</span>
           <input
             required
             type="number"
@@ -259,15 +270,17 @@ const ProductModal = ({
           </select>
         </label>
         <label>
-          <span className="mb-2 block text-sm font-semibold text-slate-600">PTA tax</span>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={formState.ptaTax}
-            onChange={(event) => onChange("ptaTax", event.target.value)}
-            className="admin-input"
-          />
+          <span className="mb-2 block text-sm font-semibold text-slate-600">
+            PTA approved
+          </span>
+          <select
+            value={formState.ptaStatus}
+            onChange={(event) => onChange("ptaStatus", event.target.value)}
+            className="admin-select w-full"
+          >
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
         </label>
         <label>
           <span className="mb-2 block text-sm font-semibold text-slate-600">
@@ -284,22 +297,22 @@ const ProductModal = ({
         </label>
         {(formState.condition === "used" ||
           formState.condition === "refurbished") && (
-          <label className="sm:col-span-2">
-            <span className="mb-2 block text-sm font-semibold text-slate-600">
-              Battery health
-            </span>
-            <input
-              type="number"
-              min="0"
-              max="100"
-              step="1"
-              value={formState.batteryHealth}
-              onChange={(event) => onChange("batteryHealth", event.target.value)}
-              className="admin-input"
-              placeholder="Required for used devices"
-            />
-          </label>
-        )}
+            <label className="sm:col-span-2">
+              <span className="mb-2 block text-sm font-semibold text-slate-600">
+                Battery health
+              </span>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                value={formState.batteryHealth}
+                onChange={(event) => onChange("batteryHealth", event.target.value)}
+                className="admin-input"
+                placeholder="Required for used devices"
+              />
+            </label>
+          )}
       </div>
 
       <label className="block">
@@ -316,15 +329,45 @@ const ProductModal = ({
 
       <label className="block">
         <span className="mb-2 block text-sm font-semibold text-slate-600">
-          Images
+          Product images
         </span>
-        <textarea
-          rows="4"
-          value={formState.imagesText}
-          onChange={(event) => onChange("imagesText", event.target.value)}
-          className="admin-input min-h-[120px]"
-          placeholder="Paste one image URL per line"
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          className="admin-input"
+          onChange={async (event) => {
+            const files = Array.from(event.target.files || []);
+
+            if (files.length === 0) {
+              return;
+            }
+
+            const imageDataUrls = await Promise.all(files.map(readFileAsDataUrl));
+            onChange("images", imageDataUrls.filter(Boolean));
+            event.target.value = "";
+          }}
         />
+        <p className="mt-2 text-xs text-slate-500">
+          Upload one or more images. Selecting new files replaces the current set.
+        </p>
+
+        {formState.images.length > 0 && (
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {formState.images.map((image, index) => (
+              <div
+                key={`${image.slice(0, 32)}-${index}`}
+                className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
+              >
+                <img
+                  src={image}
+                  alt={`Product preview ${index + 1}`}
+                  className="aspect-square h-full w-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </label>
 
       <div className="flex flex-wrap justify-end gap-3">
@@ -844,19 +887,28 @@ export const InventoryPage = () => {
           meta={[
             `${summary.stats.totalProducts} products`,
             `${summary.stats.lowStockCount} low-stock alerts`,
-            `$${(summary.stats.stockValue || 0).toFixed(2)} stock value`,
+            `${formatPKR(summary.stats.stockValue || 0)} stock value`,
           ]}
           actions={
             <>
-              <button onClick={() => setBulkModalOpen(true)} className="admin-button-secondary">
+              <button
+                onClick={() => setBulkModalOpen(true)}
+                className="admin-button-secondary w-full sm:w-auto"
+              >
                 <FiUploadCloud />
                 Bulk upload
               </button>
-              <button onClick={openCreateModal} className="admin-button-primary">
+              <button
+                onClick={openCreateModal}
+                className="admin-button-primary w-full sm:w-auto"
+              >
                 <FiPlus />
                 Add product
               </button>
-              <button onClick={() => loadInventory(true)} className="admin-button-secondary">
+              <button
+                onClick={() => loadInventory(true)}
+                className="admin-button-secondary w-full sm:w-auto"
+              >
                 <FiRefreshCw className={refreshing ? "animate-spin" : ""} />
                 Refresh
               </button>
@@ -884,9 +936,9 @@ export const InventoryPage = () => {
           ))}
         </div>
 
-        <div className="grid gap-8 xl:grid-cols-[1.5fr_1fr]">
+        <div className="grid gap-8 2xl:grid-cols-[1.5fr_1fr]">
           <motion.section {...sectionMotion} className="admin-section space-y-6">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
               <div className="relative flex-1">
                 <FiSearch
                   className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
@@ -901,7 +953,7 @@ export const InventoryPage = () => {
                 />
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="grid w-full gap-3 sm:grid-cols-2 lg:w-auto lg:grid-cols-none lg:auto-cols-fr lg:grid-flow-col lg:items-center">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500">
                   <FiFilter size={18} />
                 </div>
@@ -910,7 +962,7 @@ export const InventoryPage = () => {
                   onChange={(event) =>
                     setFilters((current) => ({ ...current, brand: event.target.value }))
                   }
-                  className="admin-select"
+                  className="admin-select w-full min-w-0 lg:min-w-[170px]"
                 >
                   <option value="all">All brands</option>
                   {inventory.filters.brands?.map((brand) => (
@@ -927,7 +979,7 @@ export const InventoryPage = () => {
                       category: event.target.value,
                     }))
                   }
-                  className="admin-select"
+                  className="admin-select w-full min-w-0 lg:min-w-[170px]"
                 >
                   <option value="all">All categories</option>
                   {inventory.filters.categories?.map((category) => (
@@ -939,7 +991,7 @@ export const InventoryPage = () => {
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-5">
               <label>
                 <span className="mb-2 block text-sm font-semibold text-slate-600">
                   Stock
@@ -977,9 +1029,9 @@ export const InventoryPage = () => {
                 </select>
               </label>
               <label>
-                <span className="mb-2 block text-sm font-semibold text-slate-600">
-                  Min price
-                </span>
+                  <span className="mb-2 block text-sm font-semibold text-slate-600">
+                   Min price (PKR)
+                  </span>
                 <input
                   type="number"
                   min="0"
@@ -991,9 +1043,9 @@ export const InventoryPage = () => {
                 />
               </label>
               <label>
-                <span className="mb-2 block text-sm font-semibold text-slate-600">
-                  Max price
-                </span>
+                  <span className="mb-2 block text-sm font-semibold text-slate-600">
+                   Max price (PKR)
+                  </span>
                 <input
                   type="number"
                   min="0"
@@ -1010,7 +1062,7 @@ export const InventoryPage = () => {
                   setFilters(baseFilters);
                   setSearchQuery("");
                 }}
-                className="admin-button-secondary mt-auto"
+                className="admin-button-secondary w-full sm:col-span-2 2xl:col-span-1 2xl:mt-auto"
               >
                 <FiSliders />
                 Reset filters
@@ -1019,16 +1071,17 @@ export const InventoryPage = () => {
 
             {inventory.products.length > 0 ? (
               <>
-                <div className="overflow-x-auto">
+                <div className="hidden overflow-x-auto 2xl:block">
                   <table className="w-full min-w-[1100px]">
                     <thead>
                       <tr className="border-b border-slate-200 text-left text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
                         <th className="px-4 py-4">Product</th>
                         <th className="px-4 py-4">Category</th>
                         <th className="px-4 py-4">Condition</th>
+                        <th className="px-4 py-4">PTA</th>
                         <th className="px-4 py-4">Status</th>
                         <th className="px-4 py-4 text-center">Stock</th>
-                        <th className="px-4 py-4 text-right">Price</th>
+                          <th className="px-4 py-4 text-right">Price (PKR)</th>
                         <th className="px-4 py-4 text-right">Actions</th>
                       </tr>
                     </thead>
@@ -1054,11 +1107,17 @@ export const InventoryPage = () => {
                           </td>
                           <td className="px-4 py-5">
                             <span
-                              className={`rounded-full px-3 py-1 text-sm font-semibold ${
-                                product.status === "active"
-                                  ? "bg-emerald-50 text-emerald-700"
-                                  : "bg-slate-100 text-slate-700"
-                              }`}
+                              className={`rounded-full px-3 py-1 text-sm font-semibold ${ptaTone(product.ptaStatus)}`}
+                            >
+                              {product.ptaStatus === "yes" ? "Yes" : "No"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-5">
+                            <span
+                              className={`rounded-full px-3 py-1 text-sm font-semibold ${product.status === "active"
+                                ? "bg-emerald-50 text-emerald-700"
+                                : "bg-slate-100 text-slate-700"
+                                }`}
                             >
                               {product.status}
                             </span>
@@ -1071,7 +1130,7 @@ export const InventoryPage = () => {
                             </span>
                           </td>
                           <td className="px-4 py-5 text-right text-lg font-black text-slate-950">
-                            ${product.price.toFixed(2)}
+                            {formatPKR(product.price)}
                           </td>
                           <td className="px-4 py-5">
                             <div className="flex justify-end gap-2">
@@ -1107,16 +1166,122 @@ export const InventoryPage = () => {
                   </table>
                 </div>
 
+                <div className="space-y-4 2xl:hidden">
+                  {inventory.products.map((product) => (
+                    <article
+                      key={product._id}
+                      className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5"
+                    >
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="break-words text-lg font-bold text-slate-950">
+                            {product.name}
+                          </p>
+                          <p className="mt-1 text-sm text-slate-600">
+                            {product.brand} {product.model}
+                          </p>
+                        </div>
+                        <p className="shrink-0 text-2xl font-black text-slate-950">
+                          {formatPKR(product.price)}
+                        </p>
+                      </div>
+
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                            Category
+                          </p>
+                          <p className="mt-2 text-sm font-semibold text-slate-900">
+                            {product.category}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                            Condition
+                          </p>
+                          <p className="mt-2 text-sm font-semibold capitalize text-slate-900">
+                            {product.condition}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                            PTA
+                          </p>
+                          <span
+                            className={`mt-2 inline-flex rounded-full px-3 py-1 text-sm font-semibold ${ptaTone(product.ptaStatus)}`}
+                          >
+                            {product.ptaStatus === "yes" ? "Yes" : "No"}
+                          </span>
+                        </div>
+                        <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                            Status
+                          </p>
+                          <span
+                            className={`mt-2 inline-flex rounded-full px-3 py-1 text-sm font-semibold ${
+                              product.status === "active"
+                                ? "bg-emerald-50 text-emerald-700"
+                                : "bg-slate-100 text-slate-700"
+                            }`}
+                          >
+                            {product.status}
+                          </span>
+                        </div>
+                        <div className="rounded-2xl bg-slate-50 px-4 py-3 sm:col-span-2">
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                Stock
+                              </p>
+                              <span
+                                className={`mt-2 inline-flex rounded-full px-3 py-1 text-sm font-semibold ${stockTone(product)}`}
+                              >
+                                {product.stock} units
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 sm:flex sm:justify-end">
+                              <button
+                                type="button"
+                                onClick={() => openStockModal(product)}
+                                className="inline-flex h-10 w-full items-center justify-center rounded-2xl border border-amber-100 bg-amber-50 text-amber-700 transition hover:bg-amber-100 sm:w-10"
+                                title="Adjust stock"
+                              >
+                                <FiPackage size={16} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openEditModal(product)}
+                                className="inline-flex h-10 w-full items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 text-blue-700 transition hover:bg-blue-100 sm:w-10"
+                                title="Edit product"
+                              >
+                                <FiEdit2 size={16} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteProduct(product)}
+                                className="inline-flex h-10 w-full items-center justify-center rounded-2xl border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-100 sm:w-10"
+                                title="Delete product"
+                              >
+                                <FiTrash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+
                 <div className="flex flex-col gap-4 rounded-[28px] bg-slate-50/80 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm font-semibold text-slate-600">
                     Page {inventory.pagination.page} of {inventory.pagination.totalPages}
                   </p>
-                  <div className="flex gap-3">
+                  <div className="grid grid-cols-2 gap-3 sm:flex">
                     <button
                       type="button"
                       disabled={!inventory.pagination.hasPreviousPage}
                       onClick={() => setPage((current) => Math.max(1, current - 1))}
-                      className="admin-button-secondary disabled:cursor-not-allowed disabled:opacity-50"
+                      className="admin-button-secondary w-full disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Previous
                     </button>
@@ -1124,7 +1289,7 @@ export const InventoryPage = () => {
                       type="button"
                       disabled={!inventory.pagination.hasNextPage}
                       onClick={() => setPage((current) => current + 1)}
-                      className="admin-button-primary disabled:cursor-not-allowed disabled:opacity-50"
+                      className="admin-button-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Next
                     </button>
