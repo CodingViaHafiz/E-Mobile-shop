@@ -26,41 +26,42 @@ export const Navbar = () => {
     { path: "/", icon: FiHome, label: "Home" },
     { path: "/shop", icon: FiShoppingBag, label: "Shop" },
     { path: "/cart", icon: FiShoppingCart, label: "Cart" },
+    { path: "/contact", icon: FiUser, label: "Contact" },
   ];
 
   const navItems = isAuthenticated
     ? [
-        ...baseItems,
-        ...(isAdmin
-          ? [{ path: "/admin", icon: FiShield, label: "Admin" }]
-          : [
-              { path: "/profile", icon: FiUser, label: "Profile" },
-              { path: "/settings", icon: FiSettings, label: "Settings" },
-            ]),
-        { path: "/account", icon: FiUser, label: "Account" },
-      ]
+      ...baseItems,
+      ...(isAdmin
+        ? [{ path: "/admin", icon: FiShield, label: "Admin" }]
+        : [
+          { path: "/profile", icon: FiUser, label: "Profile" },
+          { path: "/settings", icon: FiSettings, label: "Settings" },
+        ]),
+      { path: "/account", icon: FiUser, label: "Account" },
+    ]
     : baseItems;
 
   const mobileItems = isAuthenticated
     ? isAdmin
       ? [
-          { path: "/", icon: FiHome, label: "Home" },
-          { path: "/shop", icon: FiShoppingBag, label: "Shop" },
-          { path: "/admin", icon: FiShield, label: "Admin" },
-          { path: "/account", icon: FiUser, label: "Account" },
-        ]
+        { path: "/", icon: FiHome, label: "Home" },
+        { path: "/shop", icon: FiShoppingBag, label: "Shop" },
+        { path: "/admin", icon: FiShield, label: "Admin" },
+        { path: "/account", icon: FiUser, label: "Account" },
+      ]
       : [
-          { path: "/", icon: FiHome, label: "Home" },
-          { path: "/shop", icon: FiShoppingBag, label: "Shop" },
-          { path: "/cart", icon: FiShoppingCart, label: "Cart" },
-          { path: "/account", icon: FiUser, label: "Account" },
-        ]
-    : [
         { path: "/", icon: FiHome, label: "Home" },
         { path: "/shop", icon: FiShoppingBag, label: "Shop" },
         { path: "/cart", icon: FiShoppingCart, label: "Cart" },
-        { path: "/login", icon: FiUser, label: "Login" },
-      ];
+        { path: "/account", icon: FiUser, label: "Account" },
+      ]
+    : [
+      { path: "/", icon: FiHome, label: "Home" },
+      { path: "/shop", icon: FiShoppingBag, label: "Shop" },
+      { path: "/cart", icon: FiShoppingCart, label: "Cart" },
+      { path: "/login", icon: FiUser, label: "Login" },
+    ];
 
   const handleLogout = () => {
     logout();

@@ -13,6 +13,7 @@ import { COLORS } from "../constants/designTokens";
 import { inventoryApi } from "../services/inventory";
 import { useCart } from "../store/CartContext";
 import { formatPKR } from "../utils/currency";
+import { Footer } from "../components/Footer";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -414,8 +415,8 @@ export const Home = () => {
                           setFeedback(result.message);
                         }}
                         className={`flex h-10 w-10 items-center justify-center rounded-full font-bold text-white transition-all duration-300 ${product.stock === 0
-                            ? "cursor-not-allowed bg-slate-300"
-                            : ""
+                          ? "cursor-not-allowed bg-slate-300"
+                          : ""
                           }`}
                         style={
                           product.stock === 0
@@ -511,6 +512,10 @@ export const Home = () => {
           </div>
         </motion.div>
       </motion.section>
+      <div className="mt-16 mb-[-30px]">
+        <Footer />
+      </div>
     </div>
+
   );
 };

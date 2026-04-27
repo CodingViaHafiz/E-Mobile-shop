@@ -9,7 +9,7 @@ import { Home } from './pages/Home';
 import { Shop } from './pages/Shop';
 import { ProductDetail } from './pages/ProductDetail';
 import { Profile } from './pages/Profile';
-import { Settings } from './pages/Settings';
+import { Contact } from './pages/Contact';
 import { Account } from './pages/Account';
 import { Cart } from './pages/Cart';
 import { AdminDashboard } from './pages/AdminDashboard';
@@ -68,11 +68,11 @@ function AppRoutes() {
           }
         />
         <Route
-          path="/settings"
+          path="/contact"
           element={
-            <ProtectedRoute>
-              {/* <Settings /> */}
-            </ProtectedRoute>
+
+            <Contact />
+
           }
         />
         <Route
