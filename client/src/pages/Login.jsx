@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FiMail, FiLock, FiEye, FiEyeOff } from "react-icons/fi";
 import { useAuth } from "../store/AuthContext";
+import { getRoleHomePath } from "../utils/authRedirects";
 
 export const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -24,7 +25,7 @@ export const Login = () => {
     const result = await login(formData.email, formData.password);
 
     if (result.success) {
-      navigate("/");
+      navigate(getRoleHomePath(result.user), { replace: true });
     } else {
       setError(result.error);
     }
@@ -176,9 +177,9 @@ export const Login = () => {
 
               {/* Forgot Password */}
               <div className="flex justify-end">
-                <a href="#" className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                <Link to="/forgot-password" className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors">
                   Forgot password?
-                </a>
+                </Link>
               </div>
 
               {/* Submit Button */}

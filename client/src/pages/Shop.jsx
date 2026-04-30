@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
+  FiBarChart2,
   FiBox,
   FiChevronLeft,
   FiChevronRight,
   FiFilter,
   FiSearch,
   FiShoppingCart,
-  FiSmartphone,
 } from "react-icons/fi";
 import { COLORS } from "../constants/designTokens";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
@@ -43,6 +43,14 @@ const getStockTone = (product) => {
   return "bg-emerald-50 text-emerald-700";
 };
 
+const getReviewLabel = (product) =>
+  product?.reviewCount
+    ? `${product.averageRating} / 5 (${product.reviewCount})`
+    : "No reviews";
+
+const getCompareLabel = (product) =>
+  product ? `${product.name} | ${product.brand} ${product.model}` : "";
+
 export const Shop = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBrand, setSelectedBrand] = useState("all");
@@ -58,6 +66,9 @@ export const Shop = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [compareOptions, setCompareOptions] = useState([]);
+  const [compareFirstQuery, setCompareFirstQuery] = useState("");
+  const [compareSecondQuery, setCompareSecondQuery] = useState("");
   const debouncedSearch = useDebouncedValue(searchQuery, 450);
   const { addToCart, syncProducts } = useCart();
 
@@ -120,6 +131,122 @@ export const Shop = () => {
     syncProducts,
   ]);
 
+  useEffect(() => {
+    let ignore = false;
+
+    const fetchCompareOptions = async () => {
+      try {
+        const data = await inventoryApi.getProducts({
+          page: 1,
+          limit: 50,
+          sortBy: "name",
+          sortOrder: "asc",
+        });
+
+        if (!ignore) {
+          setCompareOptions(data.products || []);
+        }
+      } catch {
+        if (!ignore) {
+          setCompareOptions([]);
+        }
+      }
+    };
+
+    fetchCompareOptions();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const firstCompareProduct = useMemo(
+    () =>
+      compareOptions.find((product) => getCompareLabel(product) === compareFirstQuery),
+    [compareFirstQuery, compareOptions],
+  );
+
+  const secondCompareOptions = useMemo(() => {
+    if (!firstCompareProduct) {
+      return compareOptions;
+    }
+
+    return compareOptions.filter(
+      (product) =>
+        product._id !== firstCompareProduct._id &&
+        product.category === firstCompareProduct.category,
+    );
+  }, [compareOptions, firstCompareProduct]);
+
+  const secondCompareProduct = useMemo(
+    () =>
+      secondCompareOptions.find(
+        (product) => getCompareLabel(product) === compareSecondQuery,
+      ),
+    [compareSecondQuery, secondCompareOptions],
+  );
+
+  useEffect(() => {
+    if (!firstCompareProduct || !compareSecondQuery) {
+      return;
+    }
+
+    const stillValid = secondCompareOptions.some(
+      (product) => getCompareLabel(product) === compareSecondQuery,
+    );
+
+    if (!stillValid) {
+      setCompareSecondQuery("");
+    }
+  }, [compareSecondQuery, firstCompareProduct, secondCompareOptions]);
+
+  const comparisonRows = [
+    { label: "Brand", getValue: (product) => product?.brand || "-" },
+    { label: "Model", getValue: (product) => product?.model || "-" },
+    { label: "Category", getValue: (product) => product?.category || "-" },
+    { label: "Condition", getValue: (product) => product?.condition || "-" },
+    { label: "Price", getValue: (product) => (product ? formatPKR(product.price) : "-") },
+    { label: "Stock", getValue: (product) => (product ? `${product.stock} units` : "-") },
+    {
+      label: "PTA",
+      getValue: (product) =>
+        product ? (product.ptaStatus === "yes" ? "Approved" : "No") : "-",
+    },
+    {
+      label: "Battery",
+      getValue: (product) =>
+        product?.batteryHealth !== null && product?.batteryHealth !== undefined
+          ? `${product.batteryHealth}%`
+          : "N/A",
+    },
+    { label: "Rating", getValue: getReviewLabel },
+  ];
+
+  const renderCompareProduct = (product, fallback) => (
+    <div className="min-w-0 rounded-2xl border border-white/10 bg-white/10 p-3 text-white">
+      <div className="flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl bg-white/95">
+        {product?.images?.[0] ? (
+          <img
+            src={product.images[0]}
+            alt={product.name}
+            className="h-full w-full object-contain p-2"
+          />
+        ) : (
+          <FiSmartphone className="text-5xl text-blue-700/70" />
+        )}
+      </div>
+      <p className="mt-3 truncate text-sm font-black">
+        {product?.name || fallback}
+      </p>
+      <p className="mt-1 truncate text-xs text-blue-100">
+        {product ? `${product.brand} ${product.model}` : "Select a product"}
+      </p>
+      <p className="mt-2 text-base font-black text-white">
+        {product ? formatPKR(product.price) : "-"}
+      </p>
+    </div>
+  );
+
   return (
     <div
       className="min-h-screen pb-24 pt-20 md:pb-8"
@@ -136,7 +263,7 @@ export const Shop = () => {
               <p className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-blue-700">
                 Live Catalog
               </p>
-              <h1 className="mt-5 text-4xl font-black tracking-tight text-slate-950 md:text-5xl">
+              <h1 className="mt-5 text-3xl font-black tracking-tight text-slate-950 md:text-4xl">
                 Shop inventory with live stock
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 md:text-base">
@@ -146,7 +273,7 @@ export const Shop = () => {
               </p>
             </div>
 
-            <div className="rounded-[28px] bg-slate-950 p-5 text-white shadow-xl shadow-slate-950/15">
+            <div className="rounded-[28px] bg-white p-5 text-slate-900 shadow-md">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-100">
                 Results
               </p>
@@ -156,6 +283,30 @@ export const Shop = () => {
               <p className="mt-2 text-sm text-slate-300">
                 Active products currently available in the storefront.
               </p>
+            </div>
+          </div>
+        </motion.section>
+
+        <motion.section
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08 }}
+          className="mt-6 overflow-hidden rounded-[24px] border border-neutral-100 bg-white p-6 shadow-md"
+        >
+          <div className="grid gap-4 p-2 lg:grid-cols-[1fr_0.6fr] lg:items-center lg:p-4">
+            <div>
+              <h2 className="text-2xl font-black text-slate-900">Compare devices</h2>
+              <p className="mt-2 text-sm text-slate-600">Compare two devices side-by-side on a dedicated page.</p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3">
+              <Link
+                to="/compare"
+                className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:brightness-95"
+              >
+                <FiBarChart2 />
+                Compare devices
+              </Link>
             </div>
           </div>
         </motion.section>
@@ -330,11 +481,10 @@ export const Shop = () => {
                             {product.category}
                           </span>
                           <span
-                            className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                              product.ptaStatus === "yes"
-                                ? "bg-emerald-50 text-emerald-700"
-                                : "bg-slate-100 text-slate-700"
-                            }`}
+                            className={`rounded-full px-3 py-1 text-xs font-semibold ${product.ptaStatus === "yes"
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-slate-100 text-slate-700"
+                              }`}
                           >
                             PTA {product.ptaStatus === "yes" ? "Yes" : "No"}
                           </span>
@@ -381,11 +531,10 @@ export const Shop = () => {
                             const result = addToCart(product, 1);
                             setFeedback(result.message);
                           }}
-                          className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
-                            product.stock === 0
-                              ? "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400"
-                              : "bg-slate-950 text-white shadow-lg shadow-slate-950/15 hover:-translate-y-0.5 hover:bg-slate-900"
-                          }`}
+                          className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition ${product.stock === 0
+                            ? "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400"
+                            : "bg-slate-950 text-white shadow-lg shadow-slate-950/15 hover:-translate-y-0.5 hover:bg-slate-900"
+                            }`}
                         >
                           <FiShoppingCart />
                           {product.stock === 0 ? "Unavailable" : "Add to Cart"}

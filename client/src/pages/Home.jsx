@@ -103,7 +103,7 @@ export const Home = () => {
   const features = [
     {
       title: "Fast Delivery",
-      description: "Get your order within 24 hours",
+      description: "Get your order within 3 working days",
       icon: FiTruck,
     },
     {
@@ -126,7 +126,7 @@ export const Home = () => {
 
   return (
     <div
-      className="min-h-screen pb-24 pt-20 md:pb-8"
+      className="min-h-screen pb-24 pt-10 md:pb-8"
       style={{ background: COLORS.neutral.bg }}
     >
       <motion.section
@@ -334,12 +334,20 @@ export const Home = () => {
           ) : featuredProducts.length > 0 ? (
             <motion.div
               className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4"
+              initial="hidden"
+              animate="visible"
               variants={containerVariants}
             >
-              {featuredProducts.map((product) => (
+              {featuredProducts.map((product, index) => (
                 <motion.div
                   key={product._id}
-                  variants={itemVariants}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.45,
+                    delay: index * 0.08,
+                    ease: "easeOut",
+                  }}
                   whileHover={{ y: -8 }}
                   className="group relative overflow-hidden rounded-2xl border border-neutral-100 bg-white transition-all duration-300"
                   style={{

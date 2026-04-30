@@ -5,10 +5,11 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Navbar } from './components/Navbar';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
+import { ForgotPassword } from './pages/ForgotPassword';
 import { Home } from './pages/Home';
 import { Shop } from './pages/Shop';
+import { Compare } from './pages/Compare';
 import { ProductDetail } from './pages/ProductDetail';
-import { Profile } from './pages/Profile';
 import { Contact } from './pages/Contact';
 import { Account } from './pages/Account';
 import { Cart } from './pages/Cart';
@@ -16,15 +17,21 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { InventoryPage } from './pages/AdminInventory';
 import { AdminUsers } from './pages/AdminUsers';
 import { AdminAnalytics } from './pages/AdminAnalytics';
-import { AdminSettingsPage } from './pages/AdminSettingsPage';
 import { AdminOrders } from './pages/AdminOrders';
+import { AdminMessages } from './pages/AdminMessages';
+import { AdminPasswordResets } from './pages/AdminPasswordResets';
 import { COLORS } from './constants/designTokens';
+import { getRoleHomePath } from './utils/authRedirects';
 
 function AppRoutes() {
   const { isAuthenticated, loading, user } = useAuth();
   const { pathname } = useLocation();
-  const hideNavbar = pathname === "/login" || pathname === "/register" || pathname.startsWith("/admin");
-  const authenticatedHome = user?.role === "admin" ? "/admin" : "/";
+  const hideNavbar =
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/forgot-password" ||
+    pathname.startsWith("/admin");
+  const authenticatedHome = getRoleHomePath(user);
 
   if (loading) {
     return (
@@ -55,18 +62,21 @@ function AppRoutes() {
           path="/register"
           element={isAuthenticated ? <Navigate to={authenticatedHome} replace /> : <Register />}
         />
-        <Route path="/" element={<Home />} />
-        <Route path="/shop" element={<Shop />} />
-        <Route path="/product/:id" element={<ProductDetail />} />
-        <Route path="/cart" element={<Cart />} />
         <Route
-          path="/profile"
+          path="/forgot-password"
           element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
+            isAuthenticated ? (
+              <Navigate to={authenticatedHome} replace />
+            ) : (
+              <ForgotPassword />
+            )
           }
         />
+        <Route path="/" element={<Home />} />
+        <Route path="/shop" element={<Shop />} />
+        <Route path="/compare" element={<Compare />} />
+        <Route path="/product/:id" element={<ProductDetail />} />
+        <Route path="/cart" element={<Cart />} />
         <Route
           path="/contact"
           element={
@@ -108,6 +118,22 @@ function AppRoutes() {
           }
         />
         <Route
+          path="/admin/messages"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminMessages />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/password-resets"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminPasswordResets />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/admin/users"
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
@@ -120,14 +146,6 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
               <AdminAnalytics />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/settings"
-          element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <AdminSettingsPage />
             </ProtectedRoute>
           }
         />

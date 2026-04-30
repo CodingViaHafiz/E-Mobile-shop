@@ -3,10 +3,11 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   FiBox,
   FiHome,
+  FiKey,
   FiLogOut,
   FiMenu,
+  FiMessageSquare,
   FiShoppingBag,
-  FiSettings,
   FiTrendingUp,
   FiUsers,
   FiX,
@@ -23,9 +24,10 @@ export const AdminSidebar = () => {
     { label: "Dashboard", icon: FiHome, path: "/admin" },
     { label: "Inventory", icon: FiBox, path: "/admin/inventory" },
     { label: "Orders", icon: FiShoppingBag, path: "/admin/orders" },
+    { label: "Messages", icon: FiMessageSquare, path: "/admin/messages" },
+    { label: "Password Resets", icon: FiKey, path: "/admin/password-resets" },
     { label: "Users", icon: FiUsers, path: "/admin/users" },
     { label: "Analytics", icon: FiTrendingUp, path: "/admin/analytics" },
-    { label: "Settings", icon: FiSettings, path: "/admin/settings" },
   ];
 
   useEffect(() => {

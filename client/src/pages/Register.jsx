@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FiMail, FiLock, FiUser, FiEye, FiEyeOff, FiCheck } from "react-icons/fi";
 import { useAuth } from "../store/AuthContext";
+import { getRoleHomePath } from "../utils/authRedirects";
 
 export const Register = () => {
   const [formData, setFormData] = useState({
@@ -72,7 +73,7 @@ export const Register = () => {
     const result = await register(name, email, password, confirmPassword);
 
     if (result.success) {
-      navigate("/");
+      navigate(getRoleHomePath(result.user), { replace: true });
     } else {
       setError(result.error);
     }

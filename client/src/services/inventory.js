@@ -34,6 +34,10 @@ export const inventoryApi = {
     const { data } = await axiosInstance.get(`/products/${id}`);
     return data;
   },
+  createProductReview: async (id, payload) => {
+    const { data } = await axiosInstance.post(`/products/${id}/reviews`, payload);
+    return data;
+  },
   createProduct: async (payload) => {
     const { data } = await axiosInstance.post("/products", payload);
     return data;

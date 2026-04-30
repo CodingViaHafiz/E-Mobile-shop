@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
+  FiBarChart2,
   FiHome,
   FiShoppingBag,
   FiUser,
@@ -25,6 +26,7 @@ export const Navbar = () => {
   const baseItems = [
     { path: "/", icon: FiHome, label: "Home" },
     { path: "/shop", icon: FiShoppingBag, label: "Shop" },
+    { path: "/compare", icon: FiBarChart2, label: "Compare" },
     { path: "/cart", icon: FiShoppingCart, label: "Cart" },
     { path: "/contact", icon: FiUser, label: "Contact" },
   ];
@@ -35,8 +37,7 @@ export const Navbar = () => {
       ...(isAdmin
         ? [{ path: "/admin", icon: FiShield, label: "Admin" }]
         : [
-          { path: "/profile", icon: FiUser, label: "Profile" },
-          { path: "/settings", icon: FiSettings, label: "Settings" },
+          // { path: "/profile", icon: FiUser, label: "Profile" }
         ]),
       { path: "/account", icon: FiUser, label: "Account" },
     ]
@@ -164,7 +165,10 @@ export const Navbar = () => {
                     <div className="relative">
                       <Icon className="text-xl transition-transform duration-300 group-hover:scale-110" />
                       {path === "/cart" && itemCount > 0 && (
-                        <span className="absolute -right-2 -top-2 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-slate-950 px-1 text-[10px] font-bold text-white">
+                        <span
+                          className="absolute -right-2 -top-2 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
+                          style={{ background: COLORS.primary.dark }}
+                        >
                           {itemCount}
                         </span>
                       )}
@@ -267,7 +271,10 @@ export const Navbar = () => {
                 <div className="relative z-10 text-2xl transition-transform duration-300 group-hover:scale-110">
                   <Icon />
                   {path === "/cart" && itemCount > 0 && (
-                    <span className="absolute -right-3 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-slate-950 px-1 text-[10px] font-bold text-white">
+                    <span
+                      className="absolute -right-3 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
+                      style={{ background: COLORS.primary.dark }}
+                    >
                       {itemCount}
                     </span>
                   )}

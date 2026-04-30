@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
+import ContactMessage from "../models/ContactMessage.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
 export const getDashboardData = asyncHandler(async (req, res) => {
@@ -19,6 +20,9 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     lowStockProducts,
     outOfStockProducts,
     totalOrders,
+    totalMessages,
+    newMessages,
+    recentMessages,
   ] = await Promise.all([
     User.find({})
       .sort({ createdAt: -1 })
@@ -31,6 +35,12 @@ export const getDashboardData = asyncHandler(async (req, res) => {
     Product.countDocuments(lowStockExpr),
     Product.countDocuments({ stock: 0 }),
     Order.countDocuments(),
+    ContactMessage.countDocuments(),
+    ContactMessage.countDocuments({ status: "new" }),
+    ContactMessage.find({})
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select("name email subject status createdAt"),
   ]);
 
   const recentUsers = users.slice(0, 5);
@@ -46,8 +56,11 @@ export const getDashboardData = asyncHandler(async (req, res) => {
       lowStockProducts,
       outOfStockProducts,
       totalOrders,
+      totalMessages,
+      newMessages,
     },
     recentUsers,
+    recentMessages,
     users,
   });
 });

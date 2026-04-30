@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }) => {
       setUser(data.user);
       setIsAuthenticated(true);
 
-      return { success: true };
+      return { success: true, user: data.user };
     } catch (error) {
       return {
         success: false,
@@ -74,7 +74,7 @@ export const AuthProvider = ({ children }) => {
       setUser(data.user);
       setIsAuthenticated(true);
 
-      return { success: true };
+      return { success: true, user: data.user };
     } catch (error) {
       return {
         success: false,

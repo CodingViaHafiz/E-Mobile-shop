@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
 import { COLORS } from '../constants/designTokens';
+import { getRoleHomePath } from '../utils/authRedirects';
 
 export const ProtectedRoute = ({
   children,
@@ -32,7 +33,7 @@ export const ProtectedRoute = ({
   }
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={getRoleHomePath(user)} replace />;
   }
 
   return children;

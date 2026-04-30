@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import {
   FiActivity,
   FiArrowRight,
-  FiBox,
+  FiMail,
   FiPackage,
   FiRefreshCw,
   FiShield,
@@ -79,11 +79,11 @@ export const AdminDashboard = () => {
       hint: "Orders placed through the storefront",
     },
     {
-      label: "Low stock",
-      value: dashboard?.stats?.lowStockProducts || 0,
-      icon: FiBox,
-      accent: "linear-gradient(135deg, #fb7185 0%, #dc2626 100%)",
-      hint: "Products that need replenishment soon",
+      label: "New messages",
+      value: dashboard?.stats?.newMessages || 0,
+      icon: FiMail,
+      accent: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+      hint: "Contact messages waiting for admin review",
     },
   ];
 
