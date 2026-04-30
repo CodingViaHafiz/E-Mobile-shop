@@ -43,31 +43,15 @@ export const Navbar = () => {
     ]
     : baseItems;
 
-  const mobileItems = isAuthenticated
-    ? isAdmin
-      ? [
-        { path: "/", icon: FiHome, label: "Home" },
-        { path: "/shop", icon: FiShoppingBag, label: "Shop" },
-        { path: "/admin", icon: FiShield, label: "Admin" },
-        { path: "/account", icon: FiUser, label: "Account" },
-      ]
-      : [
-        { path: "/", icon: FiHome, label: "Home" },
-        { path: "/shop", icon: FiShoppingBag, label: "Shop" },
-        { path: "/cart", icon: FiShoppingCart, label: "Cart" },
-        { path: "/account", icon: FiUser, label: "Account" },
-      ]
-    : [
-      { path: "/", icon: FiHome, label: "Home" },
-      { path: "/shop", icon: FiShoppingBag, label: "Shop" },
-      { path: "/cart", icon: FiShoppingCart, label: "Cart" },
-      { path: "/login", icon: FiUser, label: "Login" },
-    ];
+  // Use the full navItems list on mobile and allow horizontal scrolling
+  const mobileItems = navItems;
 
   const handleLogout = () => {
     logout();
     navigate("/");
   };
+
+  const [showMore, setShowMore] = useState(false);
 
   const navItemVariants = {
     initial: { opacity: 0, y: -10 },
@@ -232,14 +216,15 @@ export const Navbar = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.2 }}
       >
-        <div className="flex justify-around items-center h-20">
-          {mobileItems.map(({ path, icon: Icon, label }, index) => (
+        <div className="flex items-center h-20 gap-2 px-2">
+          {/** show first 4 items, put remainder under More */}
+          {mobileItems.slice(0, 4).map(({ path, icon: Icon, label }, index) => (
             <motion.div
               key={path}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.05 * index }}
-              className="flex-1 h-full flex items-center justify-center relative"
+              className="min-w-[56px] h-full flex items-center justify-center relative"
             >
               <Link
                 to={path}
@@ -283,7 +268,49 @@ export const Navbar = () => {
               </Link>
             </motion.div>
           ))}
+
+          {mobileItems.length > 4 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="min-w-[56px] h-full flex items-center justify-center relative"
+            >
+              <button
+                onClick={() => setShowMore(true)}
+                className="flex flex-col items-center justify-center w-full h-full gap-1 relative group cursor-pointer"
+                aria-label="More navigation"
+              >
+                <FiSettings className="text-2xl" />
+                <span className="text-xs font-semibold">More</span>
+              </button>
+            </motion.div>
+          )}
         </div>
+
+        {showMore && (
+          <div className="fixed inset-0 z-50 flex flex-col bg-white/95 p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">Navigation</h3>
+              <button onClick={() => setShowMore(false)} className="text-sm text-slate-600">
+                Close
+              </button>
+            </div>
+            <div className="grid gap-2">
+              {mobileItems.map(({ path, icon: Icon, label }) => (
+                <Link
+                  key={path}
+                  to={path}
+                  onClick={() => setShowMore(false)}
+                  className="flex items-center gap-3 rounded-xl px-4 py-3 bg-white border border-slate-200"
+                >
+                  <Icon className="text-xl text-slate-700" />
+                  <span className="font-semibold text-slate-900">{label}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </motion.nav>
     </>
   );
