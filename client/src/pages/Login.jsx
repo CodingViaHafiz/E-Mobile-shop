@@ -175,12 +175,7 @@ export const Login = () => {
                 </div>
               </div>
 
-              {/* Forgot Password */}
-              <div className="flex justify-end">
-                <Link to="/forgot-password" className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors">
-                  Forgot password?
-                </Link>
-              </div>
+              {/* Forgot password link removed */}
 
               {/* Submit Button */}
               <motion.button

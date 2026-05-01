@@ -5,7 +5,6 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Navbar } from './components/Navbar';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
-import { ForgotPassword } from './pages/ForgotPassword';
 import { Home } from './pages/Home';
 import { Shop } from './pages/Shop';
 import { Compare } from './pages/Compare';
@@ -19,18 +18,14 @@ import { AdminUsers } from './pages/AdminUsers';
 import { AdminAnalytics } from './pages/AdminAnalytics';
 import { AdminOrders } from './pages/AdminOrders';
 import { AdminMessages } from './pages/AdminMessages';
-import { AdminPasswordResets } from './pages/AdminPasswordResets';
+// removed ForgotPassword and AdminPasswordResets
 import { COLORS } from './constants/designTokens';
 import { getRoleHomePath } from './utils/authRedirects';
 
 function AppRoutes() {
   const { isAuthenticated, loading, user } = useAuth();
   const { pathname } = useLocation();
-  const hideNavbar =
-    pathname === "/login" ||
-    pathname === "/register" ||
-    pathname === "/forgot-password" ||
-    pathname.startsWith("/admin");
+  const hideNavbar = pathname === "/login" || pathname === "/register" || pathname.startsWith("/admin");
   const authenticatedHome = getRoleHomePath(user);
 
   if (loading) {
@@ -62,16 +57,7 @@ function AppRoutes() {
           path="/register"
           element={isAuthenticated ? <Navigate to={authenticatedHome} replace /> : <Register />}
         />
-        <Route
-          path="/forgot-password"
-          element={
-            isAuthenticated ? (
-              <Navigate to={authenticatedHome} replace />
-            ) : (
-              <ForgotPassword />
-            )
-          }
-        />
+        {/* Forgot password removed */}
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<Shop />} />
         <Route path="/compare" element={<Compare />} />
@@ -125,14 +111,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/admin/password-resets"
-          element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <AdminPasswordResets />
-            </ProtectedRoute>
-          }
-        />
+        {/* Admin password resets removed */}
         <Route
           path="/admin/users"
           element={

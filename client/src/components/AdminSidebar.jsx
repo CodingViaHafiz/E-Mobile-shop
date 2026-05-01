@@ -25,7 +25,6 @@ export const AdminSidebar = () => {
     { label: "Inventory", icon: FiBox, path: "/admin/inventory" },
     { label: "Orders", icon: FiShoppingBag, path: "/admin/orders" },
     { label: "Messages", icon: FiMessageSquare, path: "/admin/messages" },
-    { label: "Password Resets", icon: FiKey, path: "/admin/password-resets" },
     { label: "Users", icon: FiUsers, path: "/admin/users" },
     { label: "Analytics", icon: FiTrendingUp, path: "/admin/analytics" },
   ];
